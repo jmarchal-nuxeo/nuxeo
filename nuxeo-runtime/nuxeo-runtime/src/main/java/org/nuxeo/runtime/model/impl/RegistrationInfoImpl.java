@@ -20,7 +20,6 @@
 package org.nuxeo.runtime.model.impl;
 
 import java.net.URL;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -152,7 +151,7 @@ public class RegistrationInfoImpl implements RegistrationInfo {
     }
 
     public void setContext(RuntimeContext rc) {
-        context = rc;
+        this.context = rc;
     }
 
     @Override
@@ -306,6 +305,7 @@ public class RegistrationInfoImpl implements RegistrationInfo {
         }
     }
 
+    @Deprecated
     public synchronized void restart() {
         deactivate();
         activate();
@@ -323,13 +323,18 @@ public class RegistrationInfoImpl implements RegistrationInfo {
         return ((Component) ci).getApplicationStartedOrder();
     }
 
-    @Override
-    public void notifyApplicationStarted() {
+    public synchronized void start() {
+        if (state != ACTIVATED) {
+            return;
+        }
+        state = STARTING;
+    	//TODO fire events?
         if (component != null) {
             Object ci = component.getInstance();
             if (ci instanceof Component) {
                 try {
-                    ((Component) ci).applicationStarted(component);
+                    ((Component) ci).start(component);
+                    state = STARTED;
                 } catch (RuntimeException e) {
                     log.error(String.format("Component %s notification of application started failed: %s",
                             component.getName(), e.getMessage()), e);
@@ -339,22 +344,24 @@ public class RegistrationInfoImpl implements RegistrationInfo {
         }
     }
 
-
     @Override
-    public void notifyApplicationStopped(Instant deadline) throws InterruptedException {
-        if (component == null) {
+    public boolean isStarted() {
+    	return state == STARTED;
+    }
+
+    public synchronized void stop() {
+        if (state != STARTED) {
             return;
         }
-        Object ci = component.getInstance();
-        if (!(ci instanceof Component)) {
-            return;
+        state = STOPPING;
+        // TODO no events are fired for now
+        if (component != null) {
+        	Object ci = component.getInstance();
+        	if (ci instanceof Component) {
+        		((Component) ci).stop(component);
+        	}
         }
-        try {
-            ((Component) ci).applicationStopped(component, deadline);
-        } catch (RuntimeException e) {
-            log.error(String.format("Component %s notification of application end of life failed: %s", component.getName(),
-                    e.getMessage()), e);
-        }
+        state = ACTIVATED;
     }
 
     public synchronized void activate() {

@@ -23,7 +23,6 @@ package org.nuxeo.runtime.model;
 
 import java.io.Serializable;
 import java.net.URL;
-import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 
@@ -52,16 +51,16 @@ public interface RegistrationInfo extends Serializable {
     int RESOLVED = 2;
 
     /**
-     * Component activation successful
-     */
-    int ACTIVATED = 3;
-
-    /**
      * Before component activation
      */
-    int ACTIVATING = 4;
+    int ACTIVATING = 3;
 
-    int DEACTIVATING = 5;
+    int DEACTIVATING = 4;
+
+    /**
+     * Component activation successful
+     */
+    int ACTIVATED = 5;
 
     /**
      * Notification of applicationStarted fails
@@ -69,6 +68,22 @@ public interface RegistrationInfo extends Serializable {
      * @since 7.4
      */
     int START_FAILURE = 6;
+
+    /**
+     * Component was started
+     * @since TODO
+     */
+    int STARTED = 7;
+
+    /**
+     * The component is being started
+     */
+    int STARTING = 8;
+
+    /**
+     * The component is being stopped
+     */
+    int STOPPING = 9;
 
     /**
      * Gets the component version.
@@ -179,6 +194,12 @@ public interface RegistrationInfo extends Serializable {
     boolean isResolved();
 
     /**
+     * Checks whether this component is started
+     * @return
+     */
+    boolean isStarted();
+
+    /**
      * Gets the list of provided services or null if no service is provided.
      *
      * @return an array containing the service class names or null if no service are provided
@@ -214,23 +235,11 @@ public interface RegistrationInfo extends Serializable {
     URL getXmlFileUrl();
 
     /**
-     * The component notification order for {@link #notifyApplicationStarted}.
+     * The component notification order for {@link ComponentManager#start()}.
      *
      * @return the order, 1000 by default
      * @since 5.6
      */
     int getApplicationStartedOrder();
 
-    /**
-     * Notify the component instance that the Nuxeo application started
-     */
-    void notifyApplicationStarted();
-
-
-    /**
-     * Notify the component instance that the Nuxeo is about to shutdown
-     *
-     * @since 9.2
-     */
-    void notifyApplicationStopped(Instant deadline) throws InterruptedException;
 }

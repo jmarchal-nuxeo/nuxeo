@@ -21,8 +21,6 @@
 
 package org.nuxeo.runtime.model;
 
-import java.time.Instant;
-
 import org.nuxeo.runtime.service.TimestampedService;
 
 /**
@@ -65,18 +63,23 @@ public interface Component extends Extensible, TimestampedService {
 
     /**
      * Notify the component that Nuxeo Framework finished starting all Nuxeo bundles.
+     * @deprecated since the introduction of {@link Component#start(ComponentContext)} and {@link #stop(ComponentContext)} methods
      */
+    @Deprecated
     void applicationStarted(ComponentContext context);
 
     /**
-     * Notify the component that Nuxeo Framework is about to shutdown
-     *
+     * Start the component. This method is called after all the components were resolved and activated
      * @param context
-     * @param deadline
-     *            The instant at which the runtime will be shutdown
-     *
-     * @since 9.2
+     * @since TODO
      */
-    void applicationStopped(ComponentContext context, Instant deadline) throws InterruptedException;
+    void start(ComponentContext context);
+
+    /**
+     * Stop the component.
+     * @param context
+     * @since TODO
+     */
+    void stop(ComponentContext context);
 
 }
