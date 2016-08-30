@@ -19,7 +19,6 @@
 
 package org.nuxeo.runtime.datasource;
 
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,9 +51,9 @@ public class DataSourceComponent extends DefaultComponent {
 
     public static final String ENV_CTX_NAME = "java:comp/env/";
 
-    protected final Map<String, DataSourceDescriptor> datasources = new HashMap<>();
+    protected Map<String, DataSourceDescriptor> datasources = new HashMap<>();
 
-    protected final Map<String, DataSourceLinkDescriptor> links = new HashMap<>();
+    protected Map<String, DataSourceLinkDescriptor> links = new HashMap<>();
 
     protected final DatasourceExceptionSorter.Registry sorterRegistry = new DatasourceExceptionSorter.Registry();
 
@@ -65,10 +64,17 @@ public class DataSourceComponent extends DefaultComponent {
     @Override
     public void activate(ComponentContext context) {
         instance = this;
+        datasources = new HashMap<>();
+        links = new HashMap<>();
     }
 
-    public void deactivate() {
+    @Override
+    public void deactivate(ComponentContext context) {
+        super.deactivate(context);
+        links = null;
+        datasources = null;
         instance = null;
+        //TODO should poolRegistry and sorterRegistry be removed?
     }
 
     @Override
@@ -105,7 +111,10 @@ public class DataSourceComponent extends DefaultComponent {
     }
 
     @Override
-    public void applicationStarted(ComponentContext context) {
+    public void start(ComponentContext context) {
+        if (namingContext != null) {
+            return;
+        }
         namingContext = NuxeoContainer.getRootContext();
         // allocate datasource sub-contexts
         Name comp;
@@ -137,7 +146,7 @@ public class DataSourceComponent extends DefaultComponent {
     }
 
     @Override
-    public void applicationStopped(ComponentContext context, Instant deadline) {
+    public void stop(ComponentContext context) {
         try {
             for (DataSourceLinkDescriptor desc : links.values()) {
                 unbindDataSourceLink(desc);
@@ -145,6 +154,7 @@ public class DataSourceComponent extends DefaultComponent {
             for (DataSourceDescriptor desc : datasources.values()) {
                 unbindDataSource(desc);
             }
+            namingContext = null;
         } finally {
             namingContext = null;
         }

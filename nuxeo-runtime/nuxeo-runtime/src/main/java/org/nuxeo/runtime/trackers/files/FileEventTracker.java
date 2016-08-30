@@ -177,9 +177,10 @@ public class FileEventTracker extends DefaultComponent {
     }
 
     @Override
-    public void applicationStarted(ComponentContext context) {
-        resetThreadDelegate();
+    public void start(ComponentContext context) {
+    	resetThreadDelegate();
     }
+
 
     @Override
     public void deactivate(ComponentContext context) {
