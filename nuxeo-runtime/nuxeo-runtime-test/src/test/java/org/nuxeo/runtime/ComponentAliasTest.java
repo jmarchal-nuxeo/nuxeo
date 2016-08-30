@@ -35,6 +35,9 @@ public class ComponentAliasTest extends NXRuntimeTestCase {
     public void testContributions() throws Exception {
         deployContrib("org.nuxeo.runtime.test.tests", "MyComp3.xml");
         deployContrib("org.nuxeo.runtime.test.tests", "MyComp4.xml");
+
+        applyInlineDeployments();
+
         check(3);
     }
 
@@ -43,6 +46,9 @@ public class ComponentAliasTest extends NXRuntimeTestCase {
         deployContrib("org.nuxeo.runtime.test.tests", "MyComp4.xml");
         // register the required one last
         deployContrib("org.nuxeo.runtime.test.tests", "MyComp3.xml");
+
+        applyInlineDeployments();
+
         check(3);
     }
 
@@ -52,6 +58,9 @@ public class ComponentAliasTest extends NXRuntimeTestCase {
         deployContrib("org.nuxeo.runtime.test.tests", "MyComp4b.xml");
         // the component itself
         deployContrib("org.nuxeo.runtime.test.tests", "MyComp3.xml");
+
+        applyInlineDeployments();
+
         check(1);
     }
 
