@@ -54,8 +54,10 @@ import org.nuxeo.ecm.core.work.api.WorkManager;
 import org.nuxeo.runtime.api.Framework;
 import org.nuxeo.runtime.jtajca.NuxeoContainer;
 import org.nuxeo.runtime.model.URLStreamRef;
+import org.nuxeo.runtime.reload.ReloadService;
 import org.nuxeo.runtime.test.runner.Defaults;
 import org.nuxeo.runtime.test.runner.Deploy;
+import org.nuxeo.runtime.test.runner.HotDeployer;
 import org.nuxeo.runtime.test.runner.Features;
 import org.nuxeo.runtime.test.runner.FeaturesRunner;
 import org.nuxeo.runtime.test.runner.LocalDeploy;
@@ -73,6 +75,7 @@ import com.google.inject.Binder;
  */
 @Deploy({ "org.nuxeo.runtime.management", //
         "org.nuxeo.runtime.metrics", //
+        "org.nuxeo.runtime.reload", // required by #CoreDeployer
         "org.nuxeo.ecm.core.schema", //
         "org.nuxeo.ecm.core.query", //
         "org.nuxeo.ecm.core.api", //
@@ -152,6 +155,8 @@ public class CoreFeature extends SimpleFeature {
 
     @Override
     public void initialize(FeaturesRunner runner) {
+    	runner.getFeature(RuntimeFeature.class).onHotDeploy(new CoreDeployer());
+
         storageConfiguration = new StorageConfiguration(this);
         txFeature = runner.getFeature(TransactionalFeature.class);
         txFeature.addWaiter(new WorksWaiter());
@@ -400,4 +405,15 @@ public class CoreFeature extends SimpleFeature {
         return session;
     }
 
+    class CoreDeployer extends HotDeployer.DeployAction {
+		@Override
+		public void deploy(String... contribs) throws Exception {
+			waitForAsyncCompletion();
+	        releaseCoreSession();
+			next.deploy(contribs);
+			Framework.getService(ReloadService.class).reloadRepository();
+	        createCoreSession();
+
+		}
+    }
 }
