@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.net.URL;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -82,8 +81,11 @@ public class SchedulerServiceImpl extends DefaultComponent implements SchedulerS
         StdSchedulerFactory schedulerFactory = new StdSchedulerFactory();
         URL cfg = context.getResource("config/quartz.properties");
         if (cfg != null) {
-            try (InputStream stream = cfg.openStream()) {
+            InputStream stream = cfg.openStream();
+            try {
                 schedulerFactory.initialize(stream);
+            } finally {
+                stream.close();
             }
         } else {
             // use default config (unit tests)
@@ -140,7 +142,7 @@ public class SchedulerServiceImpl extends DefaultComponent implements SchedulerS
     }
 
     @Override
-    public void applicationStarted(ComponentContext context) {
+    public void start(ComponentContext context) {
         try {
             setupScheduler();
         } catch (IOException | SchedulerException e) {
@@ -149,7 +151,7 @@ public class SchedulerServiceImpl extends DefaultComponent implements SchedulerS
     }
 
     @Override
-    public void applicationStopped(ComponentContext context, Instant deadline) {
+    public void stop(ComponentContext context) {
         try {
             scheduler.standby();
         } catch (SchedulerException cause) {

@@ -45,7 +45,6 @@ import javax.transaction.TransactionManager;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.nuxeo.common.logging.SequenceTracer;
-import org.nuxeo.ecm.core.api.NuxeoException;
 import org.nuxeo.ecm.core.event.EventServiceComponent;
 import org.nuxeo.ecm.core.work.WorkQueuing.Listener;
 import org.nuxeo.ecm.core.work.api.Work;
@@ -55,8 +54,6 @@ import org.nuxeo.ecm.core.work.api.WorkQueueDescriptor;
 import org.nuxeo.ecm.core.work.api.WorkQueueMetrics;
 import org.nuxeo.ecm.core.work.api.WorkQueuingDescriptor;
 import org.nuxeo.ecm.core.work.api.WorkSchedulePath;
-import org.nuxeo.runtime.RuntimeServiceEvent;
-import org.nuxeo.runtime.RuntimeServiceListener;
 import org.nuxeo.runtime.api.Framework;
 import org.nuxeo.runtime.metrics.MetricsService;
 import org.nuxeo.runtime.metrics.NuxeoMetricSet;
@@ -346,8 +343,20 @@ public class WorkManagerImpl extends DefaultComponent implements WorkManager {
     }
 
     @Override
-    public void applicationStarted(ComponentContext context) {
+    public void start(ComponentContext context) {
         init();
+    }
+
+    @Override
+    public void stop(ComponentContext context) {
+    	try {
+    		if (!shutdown(10, TimeUnit.SECONDS)) {
+    			log.error("Some processors are still active");
+    		}
+    	} catch (InterruptedException cause) {
+    		Thread.currentThread().interrupt();
+    		log.error("Interrupted during works manager shutdown, continuing runtime shutdown", cause);
+    	}
     }
 
     protected volatile boolean started = false;
@@ -370,31 +379,9 @@ public class WorkManagerImpl extends DefaultComponent implements WorkManager {
             for (String id : workQueueConfig.getQueueIds()) {
                 initializeQueue(workQueueConfig.get(id));
             }
-            Framework.addListener(new RuntimeServiceListener() {
-
-                @Override
-                public void handleEvent(RuntimeServiceEvent event) {
-                    if (event.id == RuntimeServiceEvent.RUNTIME_RESUMED) {
-                        for (String id : workQueueConfig.getQueueIds()) {
-                            activateQueue(workQueueConfig.get(id));
-                        }
-                    } else if (event.id == RuntimeServiceEvent.RUNTIME_ABOUT_TO_STANDBY) {
-                        for (String id : workQueueConfig.getQueueIds()) {
-                            deactivateQueue(workQueueConfig.get(id));
-                        }
-                        try {
-                            if (!shutdown(1, TimeUnit.MINUTES)) {
-                                log.error("Some processors are still active");
-                            }
-                        } catch (InterruptedException cause) {
-                            Thread.currentThread().interrupt();
-                            throw new NuxeoException("Interrupted while stopping", cause);
-                        }
-                    } else if (event.id == RuntimeServiceEvent.RUNTIME_IS_STANDBY) {
-                        Framework.removeListener(this);
-                    }
-                }
-            });
+            for (String id : workQueueConfig.getQueueIds()) {
+                activateQueue(workQueueConfig.get(id));
+            }
         }
     }
 
@@ -430,22 +417,24 @@ public class WorkManagerImpl extends DefaultComponent implements WorkManager {
         for (WorkThreadPoolExecutor executor : list) {
             executor.shutdownAndSuspend();
         }
-        timeout = TimeUnit.MILLISECONDS.convert(timeout, unit) / list.size();
-        if (timeout == 0) {
-            timeout = 1000;
-        }
+        timeout = TimeUnit.MILLISECONDS.convert(timeout, unit);
         // wait until threads termination
-        boolean paused = true;
         for (WorkThreadPoolExecutor executor : list) {
+            long t0 = System.currentTimeMillis();
             if (!executor.awaitTermination(timeout, TimeUnit.MILLISECONDS)) {
-                paused = false;
+                return false;
             }
+            timeout -= unit.convert(System.currentTimeMillis() - t0, TimeUnit.MILLISECONDS);
         }
-        // try interrupts remainings
-        for (WorkThreadPoolExecutor executor : list) {
-            executor.shutdownNow();
+        return true;
+    }
+
+    protected long remainingMillis(long t0, long delay) {
+        long d = System.currentTimeMillis() - t0;
+        if (d > delay) {
+            return 0;
         }
-        return paused;
+        return delay - d;
     }
 
     protected synchronized void removeExecutor(String queueId) {
@@ -454,17 +443,11 @@ public class WorkManagerImpl extends DefaultComponent implements WorkManager {
 
     @Override
     public boolean shutdown(long timeout, TimeUnit unit) throws InterruptedException {
-        if (!started) {
-            return true;
-        }
+        shutdownInProgress = true;
         try {
-            shutdownInProgress = true;
-            try {
-                return executors.isEmpty() || shutdownExecutors(new ArrayList<>(executors.values()), timeout, unit);
-            } finally {
-                shutdownInProgress = false;
-            }
+            return shutdownExecutors(new ArrayList<>(executors.values()), timeout, unit);
         } finally {
+            shutdownInProgress = false;
             started = false;
         }
     }

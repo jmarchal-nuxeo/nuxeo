@@ -21,7 +21,6 @@
 
 package org.nuxeo.ecm.core.cache;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -88,13 +87,12 @@ public class CacheServiceImpl extends DefaultComponent implements CacheService {
     }
 
     @Override
-    public void applicationStarted(ComponentContext context) {
+    public void start(ComponentContext context) {
         cacheRegistry.start();
     }
 
-
     @Override
-    public void applicationStopped(ComponentContext context, Instant deadline) {
+    public void stop(ComponentContext context) {
         cacheRegistry.stop();
     }
 

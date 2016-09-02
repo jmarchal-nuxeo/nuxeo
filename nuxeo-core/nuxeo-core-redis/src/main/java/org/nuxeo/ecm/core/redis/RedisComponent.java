@@ -21,7 +21,6 @@ package org.nuxeo.ecm.core.redis;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.time.Instant;
 import java.util.Collections;
 
 import org.apache.commons.io.IOUtils;
@@ -44,7 +43,7 @@ public class RedisComponent extends DefaultComponent implements RedisAdmin {
 
     private static final String DEFAULT_PREFIX = "nuxeo:";
 
-    protected volatile RedisExecutor executor;
+    protected volatile RedisExecutor executor = RedisExecutor.NOOP;
 
     protected RedisPoolDescriptorRegistry registry = new RedisPoolDescriptorRegistry();
 
@@ -108,13 +107,12 @@ public class RedisComponent extends DefaultComponent implements RedisAdmin {
         registry.removeContribution(contrib);
     }
 
-    @Override
     public RedisPoolDescriptor getConfig() {
         return registry.getConfig();
     }
 
     @Override
-    public void applicationStarted(ComponentContext context) {
+    public void start(ComponentContext context) {
         RedisPoolDescriptor config = getConfig();
         if (config == null || config.disabled) {
             return;
@@ -123,7 +121,7 @@ public class RedisComponent extends DefaultComponent implements RedisAdmin {
     }
 
     @Override
-    public void applicationStopped(ComponentContext context, Instant deadline) {
+    public void stop(ComponentContext context) {
         if (executor == null) {
             return;
         }

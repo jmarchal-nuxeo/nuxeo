@@ -19,7 +19,6 @@
  */
 package org.nuxeo.ecm.core.repository;
 
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,14 +65,15 @@ public class RepositoryService extends DefaultComponent {
         return 100;
     }
 
+
     @Override
-    public void applicationStarted(ComponentContext context) {
+    public void start(ComponentContext context) {
         TransactionHelper.runInTransaction(this::initRepositories);
     }
 
     @Override
-    public void applicationStopped(ComponentContext context, Instant deadline) {
-        TransactionHelper.runInTransaction(this::shutdown);
+	public void stop(ComponentContext context) {
+		TransactionHelper.runInTransaction(this::shutdown);
     }
 
     /**
