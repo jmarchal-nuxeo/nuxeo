@@ -41,8 +41,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
 import org.nuxeo.runtime.api.Framework;
+import org.nuxeo.runtime.test.runner.HotDeployer;
 import org.nuxeo.runtime.test.runner.Features;
 import org.nuxeo.runtime.test.runner.FeaturesRunner;
 import org.nuxeo.runtime.test.runner.LocalDeploy;
@@ -64,6 +64,9 @@ public class TestFilesystemBlobProvider {
 
     @Inject
     protected BlobManager blobManager;
+
+    @Inject
+    protected HotDeployer deployer;
 
     protected Path tmpFile;
 
@@ -92,7 +95,8 @@ public class TestFilesystemBlobProvider {
         assertFalse(blobProvider.supportsUserUpdate());
 
         // check that we can allow user updates of blobs by configuration
-        harness.deployContrib("org.nuxeo.ecm.core.api.tests", "OSGI-INF/test-fs-blobprovider-override.xml");
+        deployer.deploy("org.nuxeo.ecm.core.api.tests:OSGI-INF/test-fs-blobprovider-override.xml");
+
         try {
             blobProvider = blobManager.getBlobProvider(PROVIDER_ID);
             assertTrue(blobProvider.supportsUserUpdate());

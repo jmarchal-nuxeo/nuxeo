@@ -28,13 +28,24 @@ import org.junit.Test;
 import org.nuxeo.ecm.core.api.DocumentModel;
 import org.nuxeo.ecm.core.api.VersioningOption;
 import org.nuxeo.ecm.core.api.impl.DocumentModelImpl;
-import org.nuxeo.runtime.test.runner.LocalDeploy;
-import org.nuxeo.runtime.test.runner.RuntimeHarness;
+import org.nuxeo.ecm.core.test.CoreFeature;
+import org.nuxeo.ecm.core.test.annotations.Granularity;
+import org.nuxeo.ecm.core.test.annotations.RepositoryConfig;
+import org.nuxeo.ecm.core.versioning.VersioningService;
+import org.nuxeo.runtime.test.runner.HotDeployer;
+import org.nuxeo.runtime.test.runner.Features;
+import org.nuxeo.runtime.test.runner.FeaturesRunner;
 
 public class TestVersioningCompatibilitySaveOptions extends AbstractTestVersioning {
 
     @Inject
-    protected RuntimeHarness runtimeHarness;
+    protected CoreSession session;
+
+    @Inject
+    protected VersioningService vService;
+
+    @Inject
+    protected HotDeployer deployer;
 
     @Test
     public void testTypeSaveOptions() throws Exception {
@@ -46,8 +57,8 @@ public class TestVersioningCompatibilitySaveOptions extends AbstractTestVersioni
         assertEquals(3, opts.size());
         assertEquals(VersioningOption.NONE, opts.get(0));
 
-        runtimeHarness.deployContrib("org.nuxeo.ecm.core.test.tests", "test-versioning-contrib.xml");
-        try {
+        deployer.deploy("org.nuxeo.ecm.core.test.tests:test-versioning-contrib.xml");
+
             fileDoc = new DocumentModelImpl("File");
             fileDoc = session.createDocument(fileDoc);
             versionLabel = fileDoc.getVersionLabel();
@@ -63,18 +74,12 @@ public class TestVersioningCompatibilitySaveOptions extends AbstractTestVersioni
             opts = service.getSaveOptions(fileDoc);
             assertEquals(3, opts.size());
 
-            runtimeHarness.deployContrib("org.nuxeo.ecm.core.test.tests", "test-versioning-override-contrib.xml");
-            try {
+        deployer.deploy("org.nuxeo.ecm.core.test.tests:test-versioning-override-contrib.xml");
+
                 fileDoc = new DocumentModelImpl("File");
                 fileDoc = session.createDocument(fileDoc);
                 versionLabel = fileDoc.getVersionLabel();
                 assertEquals("2.2+", versionLabel);
-            } finally {
-                runtimeHarness.undeployContrib("org.nuxeo.ecm.core.test.tests", "test-versioning-override-contrib.xml");
-            }
-        } finally {
-            runtimeHarness.undeployContrib("org.nuxeo.ecm.core.test.tests", "test-versioning-contrib.xml");
-        }
     }
 
     @Test
