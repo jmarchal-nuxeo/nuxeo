@@ -44,8 +44,7 @@ import org.nuxeo.ecm.core.versioning.VersioningService;
 import org.nuxeo.runtime.test.runner.Deploy;
 import org.nuxeo.runtime.test.runner.Features;
 import org.nuxeo.runtime.test.runner.FeaturesRunner;
-import org.nuxeo.runtime.test.runner.LocalDeploy;
-import org.nuxeo.runtime.test.runner.RuntimeHarness;
+import org.nuxeo.runtime.test.runner.HotDeployer;
 
 /**
  * @since 5.7.3
@@ -60,7 +59,7 @@ public class TestBulkEditService {
     protected CoreSession session;
 
     @Inject
-    protected RuntimeHarness runtimeHarness;
+    protected HotDeployer deployer;
 
     @Inject
     protected EventService eventService;
