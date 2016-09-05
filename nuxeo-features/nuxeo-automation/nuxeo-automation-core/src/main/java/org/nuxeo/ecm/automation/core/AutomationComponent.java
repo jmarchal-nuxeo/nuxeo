@@ -19,7 +19,6 @@
  */
 package org.nuxeo.ecm.automation.core;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -234,7 +233,7 @@ public class AutomationComponent extends DefaultComponent {
     }
 
     @Override
-    public void applicationStarted(ComponentContext context) {
+    public void start(ComponentContext context) {
         if (!tracerFactory.getRecordingState()) {
             log.info("You can activate automation trace mode to get more informations on automation executions");
         }
@@ -246,7 +245,7 @@ public class AutomationComponent extends DefaultComponent {
     }
 
     @Override
-    public void applicationStopped(ComponentContext context, Instant deadline) {
+    public void stop(ComponentContext context) {
         service.flushCompiledChains();
         try {
             unBindManagement();

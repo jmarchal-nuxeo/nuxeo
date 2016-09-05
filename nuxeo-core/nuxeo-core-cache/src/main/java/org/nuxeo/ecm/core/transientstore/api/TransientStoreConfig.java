@@ -118,6 +118,13 @@ public class TransientStoreConfig {
     }
 
     /**
+     * Flush the cached store if any
+     */
+    public void flush() {
+        store =  null;
+    }
+
+    /**
      * Returns the directory where blobs will be stored.
      *
      * @since 9.1
