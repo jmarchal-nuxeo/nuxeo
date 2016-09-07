@@ -208,8 +208,7 @@ public class OAuth2ServiceProviderRegistryImpl extends DefaultComponent implemen
     }
 
     @Override
-    public void applicationStarted(ComponentContext context) {
-        super.applicationStarted(context);
+    public void start(ComponentContext context) {
         registerCustomProviders();
     }
 

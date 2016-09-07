@@ -18,7 +18,6 @@
  */
 package org.nuxeo.runtime.management;
 
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -358,14 +357,14 @@ public class ResourcePublisherService extends DefaultComponent implements Resour
     protected boolean started = false;
 
     @Override
-    public void applicationStarted(ComponentContext context) {
+    public void start(ComponentContext context) {
         started = true;
         factoriesRegistry.doRegisterResources();
         doBindResources();
     }
 
     @Override
-    public void applicationStopped(ComponentContext context, Instant deadline) {
+    public void stop(ComponentContext context) {
         started = false;
         doUnbindResources();
     }

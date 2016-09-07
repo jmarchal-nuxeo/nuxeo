@@ -23,7 +23,6 @@ import static org.nuxeo.elasticsearch.ElasticSearchConstants.ES_ENABLED_PROPERTY
 import static org.nuxeo.elasticsearch.ElasticSearchConstants.INDEXING_QUEUE_ID;
 import static org.nuxeo.elasticsearch.ElasticSearchConstants.REINDEX_ON_STARTUP_PROPERTY;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -191,7 +190,7 @@ public class ElasticSearchComponent extends DefaultComponent implements ElasticS
     }
 
     @Override
-    public void applicationStarted(ComponentContext context) {
+    public void start(ComponentContext context) {
         if (!isElasticsearchEnabled()) {
             log.info("Elasticsearch service is disabled");
             return;
@@ -205,7 +204,7 @@ public class ElasticSearchComponent extends DefaultComponent implements ElasticS
     }
 
     @Override
-    public void applicationStopped(ComponentContext context, Instant deadline) {
+    public void stop(ComponentContext context) {
         try {
             shutdownListenerThreadPool();
         } finally {
@@ -243,7 +242,6 @@ public class ElasticSearchComponent extends DefaultComponent implements ElasticS
     protected boolean isElasticsearchEnabled() {
         return Boolean.parseBoolean(Framework.getProperty(ES_ENABLED_PROPERTY, "true"));
     }
-
 
     @Override
     public int getApplicationStartedOrder() {
@@ -355,6 +353,7 @@ public class ElasticSearchComponent extends DefaultComponent implements ElasticS
     }
 
     private static class NamedThreadFactory implements ThreadFactory {
+        @SuppressWarnings("NullableProblems")
         @Override
         public Thread newThread(Runnable r) {
             return new Thread(r, "waitForEsIndexing");

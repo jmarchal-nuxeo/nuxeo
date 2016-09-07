@@ -21,7 +21,6 @@
 
 package org.nuxeo.ecm.platform.audit.service;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -94,7 +93,7 @@ public class NXAuditEventsService extends DefaultComponent {
     }
 
     @Override
-    public void applicationStarted(ComponentContext context) {
+    public void start(ComponentContext context) {
         backend = backendConfig.newInstance(this);
         backend.onApplicationStarted();
         bulker = bulkerConfig.newInstance(backend);
@@ -102,7 +101,7 @@ public class NXAuditEventsService extends DefaultComponent {
     }
 
     @Override
-    public void applicationStopped(ComponentContext context, Instant deadline) {
+    public void stop(ComponentContext context) {
         try {
             bulker.onApplicationStopped();
         } finally {

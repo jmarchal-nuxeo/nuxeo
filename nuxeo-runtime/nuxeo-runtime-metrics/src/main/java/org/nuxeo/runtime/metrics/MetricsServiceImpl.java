@@ -18,8 +18,6 @@
  */
 package org.nuxeo.runtime.metrics;
 
-import java.time.Instant;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.nuxeo.runtime.model.ComponentContext;
@@ -68,7 +66,7 @@ public class MetricsServiceImpl extends DefaultComponent implements MetricsServi
     }
 
     @Override
-    public void applicationStarted(ComponentContext context) {
+    public void start(ComponentContext context) {
         if (config == null) {
             // Use a default config
             config = new MetricsDescriptor();
@@ -79,7 +77,7 @@ public class MetricsServiceImpl extends DefaultComponent implements MetricsServi
     }
 
     @Override
-    public void applicationStopped(ComponentContext context, Instant deadline) {
+    public void stop(ComponentContext context) {
         try {
             config.disable(registry);
         } finally {
