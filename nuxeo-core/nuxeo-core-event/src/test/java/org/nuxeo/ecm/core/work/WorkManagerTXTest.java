@@ -35,7 +35,6 @@ import javax.transaction.xa.Xid;
 
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 import org.nuxeo.ecm.core.api.ConcurrentUpdateException;
 import org.nuxeo.ecm.core.work.api.WorkManager;
@@ -57,13 +56,15 @@ public class WorkManagerTXTest extends NXRuntimeTestCase {
     }
 
     @Override
-    @Before
     public void setUp() throws Exception {
         super.setUp();
         deployBundle("org.nuxeo.runtime.jtajca");
         deployBundle("org.nuxeo.ecm.core.event");
         deployContrib("org.nuxeo.ecm.core.event.test", "test-workmanager-config.xml");
-        fireFrameworkStarted();
+    }
+
+    @Override
+    protected void postSetUp() throws Exception {
         service = Framework.getLocalService(WorkManager.class);
         assertNotNull(service);
         assertMetrics(0, 0, 0, 0);
@@ -71,7 +72,6 @@ public class WorkManagerTXTest extends NXRuntimeTestCase {
     }
 
     @Override
-    @After
     public void tearDown() throws Exception {
         if (TransactionHelper.isTransactionActiveOrMarkedRollback()) {
             TransactionHelper.setTransactionRollbackOnly();
