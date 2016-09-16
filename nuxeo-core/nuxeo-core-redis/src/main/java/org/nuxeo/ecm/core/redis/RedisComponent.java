@@ -126,7 +126,10 @@ public class RedisComponent extends DefaultComponent implements RedisAdmin {
             return;
         }
         try {
-            executor.getPool().destroy();
+            // the noop redis pool doesn't support getPool() method (happens when redis pool is not configured)
+            if (executor != RedisExecutor.NOOP) {
+                executor.getPool().destroy();
+            }
         } finally {
             executor = null;
         }
