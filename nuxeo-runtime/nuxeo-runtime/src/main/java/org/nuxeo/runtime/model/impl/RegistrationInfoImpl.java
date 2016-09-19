@@ -427,6 +427,15 @@ public class RegistrationInfoImpl implements RegistrationInfo {
     }
 
     public synchronized void deactivate() {
+        deactivate(true);
+    }
+
+    /**
+     * Deactivate the component. If mustUnregisterExtensions is false then the call was made by the manager because all components are stopped (and deactivated)
+     * so the extension unregister should not be done (this will speedup the stop and also fix broken component which are not correctly defining dependencies.)
+     * @param mustUnregisterExtensions
+     */
+    public synchronized void deactivate(boolean mustUnregisterExtensions) {
         if (state != ACTIVATED && state != START_FAILURE) {
             return;
         }
@@ -434,16 +443,18 @@ public class RegistrationInfoImpl implements RegistrationInfo {
         state = DEACTIVATING;
         manager.sendEvent(new ComponentEvent(ComponentEvent.DEACTIVATING_COMPONENT, this));
 
-        // unregister contributed extensions if any
-        if (extensions != null) {
-            for (Extension xt : extensions) {
-                try {
-                    manager.unregisterExtension(xt);
-                } catch (RuntimeException e) {
-                    String message = "Failed to unregister extension. Contributor: " + xt.getComponent() + " to "
-                            + xt.getTargetComponent() + "; xpoint: " + xt.getExtensionPoint();
-                    log.error(message, e);
-                    Framework.getRuntime().getErrors().add(message);
+        if (mustUnregisterExtensions) {
+            // unregister contributed extensions if any
+            if (extensions != null) {
+                for (Extension xt : extensions) {
+                    try {
+                        manager.unregisterExtension(xt);
+                    } catch (RuntimeException e) {
+                        String message = "Failed to unregister extension. Contributor: " + xt.getComponent() + " to "
+                                + xt.getTargetComponent() + "; xpoint: " + xt.getExtensionPoint();
+                        log.error(message, e);
+                        Framework.getRuntime().getErrors().add(message);
+                    }
                 }
             }
         }
