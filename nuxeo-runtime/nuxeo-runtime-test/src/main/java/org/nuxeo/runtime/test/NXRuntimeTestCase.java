@@ -95,11 +95,14 @@ import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner;
  * classes.
  *
  * @author <a href="mailto:bs@nuxeo.com">Bogdan Stefanescu</a>
+ * @deprecated since 9.2 use JUnit4 annotations with {@link FeaturesRunner} and
+ * {@link org.nuxeo.runtime.test.runner.RuntimeFeature}, see https://doc.nuxeo.com/corg/unit-testing/.
  */
 // Make sure this class is kept in sync with with RuntimeHarness
 @RunWith(FeaturesRunner.class)
 @Features({ MDCFeature.class, ConditionalIgnoreRule.Feature.class, RandomBug.Feature.class })
 @Ignore
+@Deprecated
 public class NXRuntimeTestCase implements RuntimeHarness {
 
     protected Mockery jmcontext = new JUnit4Mockery();
