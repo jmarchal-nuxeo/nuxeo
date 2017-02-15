@@ -77,4 +77,28 @@ public interface SchemaManager extends TypeProvider {
      */
     Set<String> getAllowedSubTypes(String type);
 
+    /**
+     * @return if input property is deprecated
+     * @since 9.2
+     */
+    boolean isPropertyDeprecated(String schema, String property);
+
+    /**
+     * @return the fallback property for given property if it is deprecated
+     * @since 9.2
+     */
+    String getDeprecatedPropertyFallback(String schema, String property);
+
+    /**
+     * @return if input property is removed from schema definition
+     * @since 9.2
+     */
+    boolean isPropertyRemoved(String schema, String property);
+
+    /**
+     * @return the fallback property for given property if it is removed
+     * @since 9.2
+     */
+    String getRemovedPropertyFallback(String schema, String property);
+
 }
