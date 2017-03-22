@@ -421,7 +421,6 @@ public class WorkManagerTest {
 
     @Test
     public void testNoConcurrentJobsWithSameId() throws Exception {
-        deployAndStart();
 
         // create an init work to warm up the service, this is needed only for the embedded redis mode
         // sometime embedded mode takes around 1s to init, this prevent to put reliable assertion on time execution
