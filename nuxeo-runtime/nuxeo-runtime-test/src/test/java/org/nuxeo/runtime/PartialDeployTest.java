@@ -46,6 +46,7 @@ public class PartialDeployTest extends NXRuntimeTestCase {
         assertNull(getComponent(partial));
 
         deployPartialComponent(getContext(), Collections.emptySet(), compRef);
+        applyInlineDeployments();
         assertNull(getComponent(name));
         assertNotNull(getComponent(partial));
         assertNumberOfExtensionsEquals(0, partial);
@@ -67,6 +68,7 @@ public class PartialDeployTest extends NXRuntimeTestCase {
             }
         };
         deployPartialComponent(getContext(), Collections.singleton(te), compRef);
+        applyInlineDeployments();
 
         assertNull(getComponent(name));
         assertNotNull(getComponent(partial));
