@@ -462,8 +462,7 @@ public class NuxeoContainer {
         tm = actual;
         tmRecoverable = wrapTransactionManager(tm);
         ut = new UserTransactionImpl(tm);
-        tmSynchRegistry = lookup(context, "TransactionSynchronizationRegistry",
-                TransactionSynchronizationRegistry.class);
+        tmSynchRegistry = (TransactionSynchronizationRegistry)tm;
     }
 
     protected static ConnectionManagerWrapper lookupConnectionManager(String repositoryName) throws NamingException {
