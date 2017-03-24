@@ -20,6 +20,7 @@
 
 package org.nuxeo.runtime.model.impl;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -53,6 +54,7 @@ import org.nuxeo.runtime.model.RegistrationInfo;
 public class ComponentManagerImpl implements ComponentManager {
 
     private static final Log log = LogFactory.getLog(ComponentManagerImpl.class);
+    private static final Log infoLog = LogFactory.getLog(ComponentManager.class);
 
     // must use an ordered Set to avoid loosing the order of the pending
     // extensions
@@ -440,7 +442,8 @@ public class ComponentManagerImpl implements ComponentManager {
     		return false;
     	}
 
-    	log.info("Starting Nuxeo Components");
+    	double tm0 = System.currentTimeMillis();
+    	infoLog.info("Starting Nuxeo Components");
 
     	listeners.beforeStart();
 
@@ -467,7 +470,8 @@ public class ComponentManagerImpl implements ComponentManager {
 
     	listeners.afterStart();
 
-    	log.info("Nuxeo Components Started");
+    	double tm1 = System.currentTimeMillis();
+    	infoLog.info("Nuxeo Components Started. Took: "+new DecimalFormat("#.00").format((tm1-tm0)/1000)+"s");
 
     	return true;
     }
@@ -478,7 +482,8 @@ public class ComponentManagerImpl implements ComponentManager {
     		return false;
     	}
 
-    	log.info("Stopping Nuxeo Components");
+        double tm0 = System.currentTimeMillis();
+    	infoLog.info("Stopping Nuxeo Components");
 
     	listeners.beforeStop();
 
@@ -507,7 +512,8 @@ public class ComponentManagerImpl implements ComponentManager {
 
     	listeners.afterStop();
 
-    	log.info("Nuxeo Components Stopped");
+    	double tm1 = System.currentTimeMillis();
+    	infoLog.info("Nuxeo Components Stopped. Took: "+new DecimalFormat("#.00").format((tm1-tm0)/1000)+"s");
 
     	return true;
     }

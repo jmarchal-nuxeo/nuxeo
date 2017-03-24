@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.nuxeo.runtime.ComponentListener;
+import org.nuxeo.runtime.api.Framework;
 import org.nuxeo.runtime.model.impl.DefaultRuntimeContext;
 
 /**
@@ -301,7 +302,7 @@ public interface ComponentManager {
     void addListener(ComponentManager.Listener listener);
 
     /**
-     * Remove the component manager listener previously added by {@link #addListener(Listener)}.
+     * Remove the component manager listener previously added by {@link #addListener(LifeCycleListener)}.
      * If the listener were not added then nothing is done.
      * @param listener
      */
@@ -317,6 +318,25 @@ public interface ComponentManager {
         void afterStart(ComponentManager mgr);
         void beforeStop(ComponentManager mgr);
         void afterStop(ComponentManager mgr);
+    }
+
+    public static abstract class LifeCycleHandler implements Listener {
+        @Override
+        public void beforeStart(ComponentManager mgr) {}
+        @Override
+        public void afterStart(ComponentManager mgr) {}
+        @Override
+        public void beforeStop(ComponentManager mgr) {}
+        @Override
+        public void afterStop(ComponentManager mgr) {}
+        public LifeCycleHandler install() {
+            Framework.getRuntime().getComponentManager().addListener(this);
+            return this;
+        }
+        public LifeCycleHandler uninstall() {
+            Framework.getRuntime().getComponentManager().removeListener(this);
+            return this;
+        }
     }
 
 }
