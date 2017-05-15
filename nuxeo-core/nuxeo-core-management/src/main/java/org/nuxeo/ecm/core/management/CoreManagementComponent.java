@@ -18,8 +18,6 @@
  */
 package org.nuxeo.ecm.core.management;
 
-import java.time.Instant;
-
 import org.nuxeo.ecm.core.event.EventStats;
 import org.nuxeo.ecm.core.management.api.AdministrativeStatusManager;
 import org.nuxeo.ecm.core.management.api.GlobalAdministrativeStatusManager;
@@ -130,7 +128,7 @@ public class CoreManagementComponent extends DefaultComponent {
     }
 
     @Override
-    public void applicationStopped(ComponentContext context, Instant deadline) {
+    public void stop(ComponentContext context) {
         getLocalManager().onNuxeoServerShutdown();
     }
 

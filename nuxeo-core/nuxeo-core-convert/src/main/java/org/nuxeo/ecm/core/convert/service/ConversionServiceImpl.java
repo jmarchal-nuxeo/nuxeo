@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -517,11 +516,6 @@ public class ConversionServiceImpl extends DefaultComponent implements Conversio
     @Override
     public void stop(ComponentContext context) {
     	endGC();
-    }
-
-    @Override
-    public void applicationStopped(ComponentContext context, Instant deadline) {
-        endGC();
     }
 
     protected void startGC() {

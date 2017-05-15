@@ -43,7 +43,7 @@ public class RedisComponent extends DefaultComponent implements RedisAdmin {
 
     private static final String DEFAULT_PREFIX = "nuxeo:";
 
-    protected volatile RedisExecutor executor = RedisExecutor.NOOP;
+    protected volatile RedisExecutor executor;
 
     protected RedisPoolDescriptorRegistry registry = new RedisPoolDescriptorRegistry();
 
@@ -107,6 +107,7 @@ public class RedisComponent extends DefaultComponent implements RedisAdmin {
         registry.removeContribution(contrib);
     }
 
+    @Override
     public RedisPoolDescriptor getConfig() {
         return registry.getConfig();
     }
@@ -126,10 +127,7 @@ public class RedisComponent extends DefaultComponent implements RedisAdmin {
             return;
         }
         try {
-            // the noop redis pool doesn't support getPool() method (happens when redis pool is not configured)
-            if (executor != RedisExecutor.NOOP) {
-                executor.getPool().destroy();
-            }
+            executor.getPool().destroy();
         } finally {
             executor = null;
         }

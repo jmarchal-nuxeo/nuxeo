@@ -46,14 +46,6 @@ public class RuntimeServiceEvent {
 
     public static final int RUNTIME_STOPPED = 3;
 
-    public static final int RUNTIME_ABOUT_TO_RESUME = 4;
-
-    public static final int RUNTIME_RESUMED = 5;
-
-    public static final int RUNTIME_ABOUT_TO_STANDBY = 6;
-
-    public static final int RUNTIME_IS_STANDBY = 7;
-
     /** The event id. */
     public final int id;
 

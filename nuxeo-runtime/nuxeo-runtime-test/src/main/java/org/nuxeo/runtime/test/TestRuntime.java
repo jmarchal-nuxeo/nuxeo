@@ -26,7 +26,6 @@ import java.net.URL;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.nuxeo.runtime.AbstractRuntimeService;
 import org.nuxeo.runtime.Version;
 import org.nuxeo.runtime.api.Framework;
@@ -83,7 +82,7 @@ public class TestRuntime extends AbstractRuntimeService {
     }
 
     @Override
-    public void stop() throws InterruptedException {
+    public void stop() {
         try {
             super.stop();
         } finally {

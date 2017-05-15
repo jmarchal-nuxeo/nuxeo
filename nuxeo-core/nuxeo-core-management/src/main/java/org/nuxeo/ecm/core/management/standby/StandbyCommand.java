@@ -16,16 +16,14 @@
  */
 package org.nuxeo.ecm.core.management.standby;
 
-import java.time.Duration;
-import java.time.Instant;
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.ObjectInstance;
-import org.nuxeo.runtime.api.Framework;
+
 import org.nuxeo.runtime.management.ObjectNameFactory;
 
 public class StandbyCommand  implements StandbyMXBean {
-
+/* TODO adapt to use ComponentManager start / stop
     @Override
     public void standby(int delay) throws InterruptedException {
         if (Framework.getRuntime().isStandby()) {
@@ -58,7 +56,7 @@ public class StandbyCommand  implements StandbyMXBean {
     public boolean isStandby() {
         return Framework.getRuntime().isStandby();
     }
-
+*/
     protected final Registration registration = new Registration();
 
     protected class Registration {

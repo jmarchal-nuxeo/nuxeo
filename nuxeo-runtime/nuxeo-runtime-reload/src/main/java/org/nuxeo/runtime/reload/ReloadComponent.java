@@ -22,8 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.jar.Manifest;
 
@@ -319,10 +317,8 @@ public class ReloadComponent extends DefaultComponent implements ReloadService {
         log.info("about to reload for " + id);
         Framework.getLocalService(EventService.class).sendEvent(
                 new Event(RELOAD_TOPIC, BEFORE_RELOAD_EVENT_ID, this, null));
-        Framework.getRuntime().standby(Instant.now().plus(Duration.ofSeconds(30)));
         try {
             Framework.getLocalService(EventService.class).sendEvent(new Event(RELOAD_TOPIC, id, this, null));
-            Framework.getRuntime().resume();
         } finally {
             Framework.getLocalService(EventService.class).sendEvent(
                     new Event(RELOAD_TOPIC, AFTER_RELOAD_EVENT_ID, this, null));

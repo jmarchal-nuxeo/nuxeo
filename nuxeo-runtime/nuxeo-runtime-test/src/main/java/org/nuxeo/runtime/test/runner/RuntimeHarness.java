@@ -22,7 +22,6 @@ package org.nuxeo.runtime.test.runner;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -47,11 +46,6 @@ public interface RuntimeHarness {
      * Resume the runtime
      */
     void fireFrameworkStarted() throws Exception;
-
-    /**
-     * Put the runtime in standby mode in the specified delay
-     */
-    void standby(Duration delay) throws Exception;
 
     /**
      * Deploys a whole OSGI bundle.

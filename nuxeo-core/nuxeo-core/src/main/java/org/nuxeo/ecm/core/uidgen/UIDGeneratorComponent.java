@@ -18,7 +18,6 @@
  */
 package org.nuxeo.ecm.core.uidgen;
 
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -59,14 +58,14 @@ public class UIDGeneratorComponent extends DefaultComponent implements UIDGenera
     protected String defaultSequencer;
 
     @Override
-    public void applicationStarted(ComponentContext context) {
+    public void start(ComponentContext context) {
         for (String name : sequencers.keySet()) {
             sequencers.get(name).init();
         }
     }
 
     @Override
-    public void applicationStopped(ComponentContext context, Instant deadline) {
+    public void stop(ComponentContext context) {
         for (String name : sequencers.keySet()) {
             sequencers.get(name).dispose();
         }

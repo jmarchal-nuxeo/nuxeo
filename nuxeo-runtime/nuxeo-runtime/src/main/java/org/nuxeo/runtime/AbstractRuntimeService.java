@@ -36,6 +36,7 @@ import org.apache.commons.logging.LogFactory;
 import org.nuxeo.common.codec.CryptoProperties;
 import org.nuxeo.common.logging.JavaUtilLoggingHelper;
 import org.nuxeo.common.logging.Log4JHelper;
+import org.nuxeo.common.logging.Log4jWatchdogHandle;
 import org.nuxeo.common.utils.TextTemplate;
 import org.nuxeo.runtime.api.Framework;
 import org.nuxeo.runtime.model.ComponentInstance;
@@ -154,20 +155,42 @@ public abstract class AbstractRuntimeService implements RuntimeService {
             Level threshold = Level.parse(getProperty(REDIRECT_JUL_THRESHOLD, "INFO").toUpperCase());
             JavaUtilLoggingHelper.redirectToApacheCommons(threshold);
         }
-        if (!Boolean.parseBoolean(getProperty(LOG4J_WATCH_DISABLED, "false"))) {
-            long delay;
-            try {
-                delay = Long.parseLong(getProperty(LOG4J_WATCH_DELAY, Long.toString(LOG4J_WATCH_DELAY_DEFAULT)));
-            } catch (NumberFormatException e) {
-                delay = LOG4J_WATCH_DELAY_DEFAULT;
-            }
-            if (Log4JHelper.configureAndWatch(delay * 1000)) {
-                log.info("Configured log4j.xml change detection with a delay of " + delay + "s");
-            } else {
-                log.info("Failed to configure log4j.xml change detection");
-            }
-        } else {
+        if (Boolean.parseBoolean(getProperty(LOG4J_WATCH_DISABLED, "false"))) {
             log.info("Disabled log4j.xml change detection");
+        } else {
+            Framework.addListener(new RuntimeServiceListener() {
+
+                final long delay = loadDelay();
+
+                long loadDelay() {
+                    try {
+                        return Long.parseLong(getProperty(LOG4J_WATCH_DELAY, Long.toString(LOG4J_WATCH_DELAY_DEFAULT)));
+                    } catch (NumberFormatException e) {
+                        return LOG4J_WATCH_DELAY_DEFAULT;
+                    }
+                }
+
+                Log4jWatchdogHandle wdog;
+
+                @Override
+                public void handleEvent(RuntimeServiceEvent event) {
+                   if (event.id == RuntimeServiceEvent.RUNTIME_ABOUT_TO_START) {
+                       onStart();
+                   } else if (event.id == RuntimeServiceEvent.RUNTIME_STOPPED) {
+                       Framework.removeListener(this);
+                   }
+                }
+
+                void onStart() {
+                    wdog = Log4JHelper.configureAndWatch(delay);
+                    if (wdog == null) {
+                        log.warn("Failed to configure log4j.xml change detection");
+                    } else {
+                        log.info("Configured log4j.xml change detection with a delay of " + delay + "s");
+                    }
+                }
+            });
+
         }
         log.info("Starting Nuxeo Runtime service " + getName() + "; version: " + getVersion());
 
