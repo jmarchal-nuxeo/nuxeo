@@ -76,6 +76,13 @@ public class ComponentManagerImpl implements ComponentManager {
      *  this list is null if the components were not yet started or were stopped
      */
     protected volatile List<RegistrationInfoImpl> started;
+    /**
+     * the list of standby components (sorted according to the start order)
+     * this list is null if component were not yet started or not yet put in standby
+     * When putting components in standby all started components are stopped and the {@link #started} list is assigned to {@link #standby} list then the {@link #started} field is nullified.
+     * When resuming standby components the started list is restored from the standby list and the standby field is nullified
+     */
+    protected volatile List<RegistrationInfoImpl> standby;
 
     /**
      * A list of registrations that were deployed while the manager was started.
@@ -217,10 +224,15 @@ public class ComponentManagerImpl implements ComponentManager {
             }
         }
 
-        if (hasSnapshot() && !isFlushingStash) { // stash the registration
-        	// should stash before calling attach.
+        if (shouldStash()) { // stash the registration
+        	// should stash before calling ri.attach.
         	stash.add(ri);
         	return;
+        }
+
+        if (hasSnapshot()) {
+            // we are modifying the registry after the snapshot was created
+            changed = true;
         }
 
         ri.attach(this);
@@ -436,6 +448,62 @@ public class ComponentManagerImpl implements ComponentManager {
         Framework.getRuntime().getWarnings().add(message);
     }
 
+    /**
+     * Activate all the resolved components and return the list of activated components in the activation order
+     * @return the list of the activated components in the activation order
+     */
+    protected List<RegistrationInfoImpl> activateComponents() {
+        // make sure we start with a clean pending registry
+        pendingExtensions.clear();
+
+        List<RegistrationInfoImpl> ris = new ArrayList<RegistrationInfoImpl>();
+        // first activate resolved components
+        for (RegistrationInfoImpl ri : reg.resolved.values()) {
+            // TODO catch and handle errors
+            ri.activate();
+            ris.add(ri);
+        }
+        return ris;
+    }
+
+    /**
+     * Deactivate all active components in the reverse resolve order
+     */
+    protected void deactivateComponents() {
+        RegistrationInfoImpl[] reverseResolved = reg.resolved.values().toArray(new RegistrationInfoImpl[reg.resolved.size()]);
+        for (int i=reverseResolved.length-1;i>=0;i--) {
+            RegistrationInfoImpl ri = reverseResolved[i];
+            if (ri.isActivated()) {
+                ri.deactivate(false);
+            }
+        }
+        // make sure the pending extension map is empty (since we didn't unregistered extensions by calling ri.deactivate(false)
+        pendingExtensions.clear();
+    }
+
+    /**
+     * Start all given components
+     * @param ris
+     */
+    protected void startComponents(List<RegistrationInfoImpl> ris) {
+        for (RegistrationInfoImpl ri : ris) {
+            ri.start();
+        }
+    }
+
+    /**
+     * Stop all started components. Stopping components is done in reverse start order
+     */
+    protected void stopComponents() {
+        List<RegistrationInfoImpl> list = this.started;
+        for (int i=list.size()-1;i>=0;i--) {
+            RegistrationInfoImpl ri = list.get(i);
+            if (ri.isStarted()) {
+                ri.stop();
+            }
+        }
+    }
+
     @Override
     public synchronized boolean start() {
     	if (this.started != null) {
@@ -447,24 +515,13 @@ public class ComponentManagerImpl implements ComponentManager {
 
     	listeners.beforeStart();
 
-    	// make sure we start with a clean pending registry
-    	pendingExtensions.clear();
-
-    	List<RegistrationInfoImpl> ris = new ArrayList<RegistrationInfoImpl>();
-    	// first activate resolved components
-    	for (RegistrationInfoImpl ri : reg.resolved.values()) {
-    		// TODO catch and handle errors
-    		ri.activate();
-    		ris.add(ri);
-    	}
+    	List<RegistrationInfoImpl> ris = activateComponents();
 
         // TODO we sort using the old start order sorter (see OSGiRuntimeService.RIApplicationStartedComparator)
         Collections.sort(ris, new RIApplicationStartedComparator());
 
     	// then start activated components
-    	for (RegistrationInfoImpl ri : ris) {
-    		ri.start();
-    	}
+    	startComponents(ris);
 
     	this.started = ris;
 
@@ -488,24 +545,9 @@ public class ComponentManagerImpl implements ComponentManager {
     	listeners.beforeStop();
 
     	try {
-    		List<RegistrationInfoImpl> list = this.started;
-    		for (int i=list.size()-1;i>=0;i--) {
-    			RegistrationInfoImpl ri = list.get(i);
-    			if (ri.isStarted()) {
-    				ri.stop();
-    			}
-    		}
-
+    	    stopComponents();
     		// now deactivate all active components
-    		RegistrationInfoImpl[] reverseResolved = reg.resolved.values().toArray(new RegistrationInfoImpl[reg.resolved.size()]);
-    		for (int i=reverseResolved.length-1;i>=0;i--) {
-    			RegistrationInfoImpl ri = reverseResolved[i];
-    			if (ri.isActivated()) {
-    				ri.deactivate(false);
-    			}
-    		}
-    		// make sure the pending extension map is empty (since we didn't unregistered extensions by calling ri.deactivate(false)
-    		pendingExtensions.clear();
+    	    deactivateComponents();
     	} finally {
     		this.started = null;
     	}
@@ -519,8 +561,36 @@ public class ComponentManagerImpl implements ComponentManager {
     }
 
     @Override
+    public synchronized void standby() {
+        if (this.started != null) {
+            stopComponents();
+            this.standby = this.started;
+            this.started = null;
+        }
+    }
+
+    @Override
+    public synchronized void resume() {
+        if (this.standby != null) {
+            startComponents(this.standby);
+            this.started = this.standby;
+            this.standby = null;
+        }
+    }
+
+    @Override
     public boolean isStarted() {
     	return this.started != null;
+    }
+
+    @Override
+    public boolean isStandby() {
+        return this.standby != null;
+    }
+
+    @Override
+    public boolean isRunning() {
+        return this.started == null && this.standby == null;
     }
 
     @Override
@@ -561,6 +631,11 @@ public class ComponentManagerImpl implements ComponentManager {
     }
 
     @Override
+    public synchronized boolean refresh() {
+        return refresh(false);
+    }
+
+    @Override
 	public synchronized boolean refresh(boolean reset) {
     	if (this.stash.isEmpty()) {
     		return false;
@@ -588,6 +663,20 @@ public class ComponentManagerImpl implements ComponentManager {
     	}
     }
 
+    /**
+     * Tests whether new registrations should be stashed at registration time.
+     * If the component manager was started then new components should be stashed otherwise they can be registered.
+     * When in standby mode components are not stashed
+     *
+     * TODO: current implementation is stashing after the start completion. Should we also stashing while start is in progress?
+     * @return
+     */
+    protected boolean shouldStash() {
+        // isFlushingStash is not really needed since we never apply the stash while the component manager is started
+        //return hasSnapshot() && !isFlushingStash;
+        return this.started != null && !isFlushingStash;
+    }
+
     protected synchronized void applyStash(List<RegistrationInfoImpl> stash) {
         log.info("Applying stashed components");
     	isFlushingStash = true;
@@ -597,8 +686,22 @@ public class ComponentManagerImpl implements ComponentManager {
         	}
     	} finally {
     		isFlushingStash = false;
-    		changed = true;
+    		//changed = true;
     	}
+    }
+
+    /**
+     * Apply the stash without restarting components.
+     * This operation is unsafe since it may contribute to component that are already started.
+     * This may be used to speed up tests or for emulating the old hot reload mechanism
+     * TODO Should we expose this method in the API?
+     */
+    public void unstash() {
+        if (!this.stash.isEmpty()) {
+            List<RegistrationInfoImpl> currentStash = this.stash;
+            this.stash = new ArrayList<RegistrationInfoImpl>();
+            applyStash(currentStash);
+        }
     }
 
     /**

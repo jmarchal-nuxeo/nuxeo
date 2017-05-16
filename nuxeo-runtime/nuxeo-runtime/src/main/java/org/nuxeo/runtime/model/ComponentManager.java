@@ -226,6 +226,19 @@ public interface ComponentManager {
     boolean stop();
 
     /**
+     * Stop all started components but don't deactivate them.
+     * After calling this method you can safely contribute new extensions (i.e. modify extension registries).
+     * <p>
+     * If any components were previously started do nothing
+     */
+    void standby();
+
+    /**
+     * Start standby components. If components are not in standby mode the it does nothing.
+     */
+    void resume();
+
+    /**
      * Make a snapshot of the component registry.
      * When calling restart
      * @since TODO
@@ -233,7 +246,11 @@ public interface ComponentManager {
     void snapshot();
 
     /**
-     * Reset the registry to the last snapshot and restart the components.
+     * Optionally reset the registry to the last snapshot and restart the components.
+     * <p>
+     * When restarting components all components will be stopped, deactivated and re-instantiated.
+     * It means that all references to components before a restart will become invalid after the restart.
+     * <p>
      * If no snapshot was created then the components will be restarted without changing the registry.
      * <p>
      * If the <code>reset</code> argument is true then the registry will be reverted to the last snapshot before starting the components.
@@ -246,6 +263,7 @@ public interface ComponentManager {
      * Reset the registry to the last snapshot if any and stop the components (if they are currently started).
      * After a reset all the components are stopped so we can contribute new components if needed.
      * You must call {@link #start()} to start again the components
+     *
      * @return true if the components were stopped, false otherwise
      * @since TODO
      */
@@ -269,11 +287,39 @@ public interface ComponentManager {
     boolean refresh(boolean reset);
 
     /**
+     * Shortcut for refresh(false).
+     * If the stash is empty nothing is done.
+     * If the stash is not empty all started components are put in standby (componentns are stopped)
+     * then the stash is applied and then components are resumed.
+     * @return
+     */
+    boolean refresh();
+
+    /**
      * Tests whether the components were already started.
      * @return true if components are started, false
      * @since TODO
      */
     boolean isStarted();
+
+    /**
+     * Tests whether the components are in standby mode.
+     * That means they were started and then stopped - waiting to be started again.
+     * <p>
+     * When putting components in standby they are stopped but not deactivated.
+     * You start back the standby components by calling #resume
+     * <p>
+     * While in standby mode the component manager remains in running state.
+     * @return
+     */
+    boolean isStandby();
+
+    /**
+     * Tests whether the components are running.
+     * That means they are either started either in standby mode.
+     * @return
+     */
+    boolean isRunning();
 
     /**
      * Tests whether components were deployed over the initial snapshot (i.e. the actual registry differs from the snapshot)
