@@ -28,6 +28,10 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Type;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 import javax.ws.rs.core.MediaType;
@@ -113,7 +117,6 @@ public class TestContextInjection {
     }
 
     @Test
-    @RandomBug.Repeat(issue="pfouh",onSuccess=300)
     public void injectInSingletonInstance() throws Exception {
         final MarshallerInspector inspector = new MarshallerInspector(SingletonMarshaller.class);
         SingletonMarshaller instance1 = inspector.getInstance(ctx);
@@ -122,25 +125,24 @@ public class TestContextInjection {
         ThreadSafeRenderingContext safeCtx = (ThreadSafeRenderingContext) instance1.ctx;
         assertNotNull(safeCtx.getDelegate());
         assertSame(ctx, safeCtx.getDelegate());
-        Thread subThread = new Thread() {
-            @Override
-            public void run() {
-                synchronized (this) {
-                    // in a different thread, it should be a different instance but same context
-                    final SingletonMarshaller instance2 = inspector.getInstance(ctx);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Future<?> future = executor.submit(new Runnable() {
+
+                @Override
+                public void run() {
+                    SingletonMarshaller instance2 = inspector.getInstance(ctx);
                     assertNotSame(ctx, instance2.ctx);
                     assertTrue(instance2.ctx instanceof ThreadSafeRenderingContext);
                     ThreadSafeRenderingContext safeCtx = (ThreadSafeRenderingContext) instance2.ctx;
                     assertNotNull(safeCtx.getDelegate());
                     assertSame(ctx, safeCtx.getDelegate());
-                    notify();
                 }
-            }
-
-        };
-        subThread.start();
-        synchronized (subThread) {
-            subThread.wait();
+            });
+            executor.shutdown();
+            future.get(10, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
         }
     }
 
