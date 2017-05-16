@@ -33,10 +33,16 @@ import javax.inject.Inject;
 import javax.ws.rs.core.MediaType;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.nuxeo.ecm.core.io.registry.Writer;
 import org.nuxeo.ecm.core.io.registry.context.RenderingContext;
 import org.nuxeo.ecm.core.io.registry.context.ThreadSafeRenderingContext;
+import org.nuxeo.runtime.test.runner.Features;
+import org.nuxeo.runtime.test.runner.FeaturesRunner;
+import org.nuxeo.runtime.test.runner.RandomBug;
 
+@RunWith(FeaturesRunner.class)
+@Features(RandomBug.Feature.class)
 public class TestContextInjection {
 
     private final RenderingContext ctx = RenderingContext.CtxBuilder.get();
@@ -107,6 +113,7 @@ public class TestContextInjection {
     }
 
     @Test
+    @RandomBug.Repeat(issue="pfouh",onSuccess=300)
     public void injectInSingletonInstance() throws Exception {
         final MarshallerInspector inspector = new MarshallerInspector(SingletonMarshaller.class);
         SingletonMarshaller instance1 = inspector.getInstance(ctx);
