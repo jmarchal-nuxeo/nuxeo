@@ -226,12 +226,24 @@ public interface ComponentManager {
     boolean stop();
 
     /**
+     * Same as {@link #stop()} but log a warning if the timeout is reached while stopping components
+     * @param timeout
+     * @return
+     */
+    void stop(int timeout);
+
+    /**
      * Stop all started components but don't deactivate them.
      * After calling this method you can safely contribute new extensions (i.e. modify extension registries).
      * <p>
      * If any components were previously started do nothing
      */
     void standby();
+
+    /**
+     * Same as {@link #standby()} but log a warning if the timeout is reached while stopping components
+     */
+    void standby(int timeout);
 
     /**
      * Start standby components. If components are not in standby mode the it does nothing.
@@ -355,26 +367,90 @@ public interface ComponentManager {
     void removeListener(ComponentManager.Listener listener);
 
     /**
-     * Listener interface for component manager listeners
+     * Listener interface for component manager events
      * @author bogdan
      *
      */
     public static interface Listener {
-        void beforeStart(ComponentManager mgr);
-        void afterStart(ComponentManager mgr);
-        void beforeStop(ComponentManager mgr);
-        void afterStop(ComponentManager mgr);
+        /**
+         * Called just before activating components.
+         * This is fired when entering {@link ComponentManager#start()}
+         * @param mgr
+         */
+        void beforeActivation(ComponentManager mgr);
+
+        /**
+         * Called just after all the components were activated.
+         * @param mgr
+         */
+        void afterActivation(ComponentManager mgr);
+
+        /**
+         * Called just before activating components.
+         * @param mgr
+         */
+        void beforeDeactivation(ComponentManager mgr);
+
+        /**
+         * Called just after all the components were deactivated.
+         * This is fired just before exiting from {@link ComponentManager#stop()}
+         * @param mgr
+         */
+        void afterDeactivation(ComponentManager mgr);
+
+        /**
+         * Called just before starting components.
+         * @param mgr
+         * @param isResume true if the event was initiated by a {@link ComponentManager#resume()} call, false otherwise
+         */
+        void beforeStart(ComponentManager mgr, boolean isResume);
+
+        /**
+         * Called just after all components were started
+         * @param mgr
+         * @param isResume true if the event was initiated by a {@link ComponentManager#resume()} call, false otherwise
+         */
+        void afterStart(ComponentManager mgr, boolean isResume);
+
+        /**
+         * Called just before stopping components.
+         * @param mgr
+         * @param isStandby true if the event was initiated by a {@link ComponentManager#standby()} call, false otherwise
+         */
+        void beforeStop(ComponentManager mgr, boolean isStandby);
+
+        /**
+         * Called just after the components were stopped.
+         * @param mgr
+         * @param isStandby true if the event was initiated by a {@link ComponentManager#standby()} call, false otherwise
+         */
+        void afterStop(ComponentManager mgr, boolean isStandby);
     }
 
-    public static abstract class LifeCycleHandler implements Listener {
+    /**
+     * Abstract base class for component manager listeners.
+     * Subclass this instead of directly implementing {@link Listener}
+     *
+     * @author bogdan
+     */
+    public static class LifeCycleHandler implements Listener {
         @Override
-        public void beforeStart(ComponentManager mgr) {}
+        public void beforeActivation(ComponentManager mgr) {}
         @Override
-        public void afterStart(ComponentManager mgr) {}
+        public void afterActivation(ComponentManager mgr) {}
         @Override
-        public void beforeStop(ComponentManager mgr) {}
+        public void beforeDeactivation(ComponentManager mgr) {}
         @Override
-        public void afterStop(ComponentManager mgr) {}
+        public void afterDeactivation(ComponentManager mgr) {}
+        @Override
+        public void beforeStart(ComponentManager mgr, boolean isResume) {}
+        @Override
+        public void afterStart(ComponentManager mgr, boolean isResume) {}
+        @Override
+        public void beforeStop(ComponentManager mgr, boolean isStandby) {}
+        @Override
+        public void afterStop(ComponentManager mgr, boolean isStandby) {}
+
         public LifeCycleHandler install() {
             Framework.getRuntime().getComponentManager().addListener(this);
             return this;

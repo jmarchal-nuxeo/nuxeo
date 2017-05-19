@@ -674,7 +674,7 @@ public class NuxeoAuthenticationFilter implements Filter {
                     new ComponentManager.LifeCycleHandler() {
                         // nullify service field if components are restarting
                         @Override
-                        public void beforeStart(ComponentManager mgr) {
+                        public void beforeStart(ComponentManager mgr, boolean isResume) {
                             service = null;
                             uninstall();
                         }

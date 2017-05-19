@@ -19,6 +19,7 @@ package org.nuxeo.ecm.core.management.test;
 import javax.management.JMX;
 import javax.management.MBeanServer;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.nuxeo.ecm.core.management.standby.StandbyCommand;
@@ -47,13 +48,11 @@ public class CanStandbyAndResumeTest {
         MBeanServer server = Framework.getService(ServerLocator.class).lookupServer();
         StandbyMXBean bean = JMX.newMBeanProxy(server, ObjectNameFactory.getObjectName(StandbyCommand.class.getName()),
                 StandbyMXBean.class);
-        /* TODO adapt to ComponentManager start / stop
         Assertions.assertThat(bean.isStandby()).isFalse();
         bean.standby(10);
         Assertions.assertThat(bean.isStandby()).isTrue();
         bean.resume();
         Assertions.assertThat(bean.isStandby()).isFalse();
-        */
     }
 
 }

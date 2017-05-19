@@ -19,7 +19,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.nuxeo.ecm.core.test.CoreFeature;
@@ -28,6 +27,7 @@ import org.nuxeo.ecm.core.work.api.Work;
 import org.nuxeo.ecm.core.work.api.WorkManager;
 import org.nuxeo.ecm.core.work.api.WorkQueueMetrics;
 import org.nuxeo.runtime.api.Framework;
+import org.nuxeo.runtime.model.ComponentManager;
 import org.nuxeo.runtime.test.runner.Features;
 import org.nuxeo.runtime.test.runner.FeaturesRunner;
 
@@ -35,7 +35,6 @@ import redis.clients.jedis.Jedis;
 
 @Features({ RedisFeature.class, CoreFeature.class })
 @RunWith(FeaturesRunner.class)
-@Ignore
 public class TestRedisWorkShutdown {
 
     static Log log = LogFactory.getLog(TestRedisWorkShutdown.class);
@@ -101,6 +100,7 @@ public class TestRedisWorkShutdown {
     //TODO adapt to componentmanager restart
     @Test
     public void worksArePersisted() throws InterruptedException {
+        ComponentManager mgr = Framework.getRuntime().getComponentManager();
         assertMetrics(0, 0, 0, 0);
         try {
             // given two running works
@@ -109,8 +109,7 @@ public class TestRedisWorkShutdown {
             canShutdown.await(10, TimeUnit.SECONDS);
             assertMetrics(0, 2, 0, 0);
             // when I shutdown
-            Framework.getRuntime().getComponentManager().stop();
-            //TODO Framework.getRuntime().standby(Instant.now().plus(Duration.ofSeconds(10)));
+            mgr.standby(10);
         } finally {
             // then works are suspending
             canProceed.countDown();
@@ -122,8 +121,7 @@ public class TestRedisWorkShutdown {
             canProceed = new CountDownLatch(1);
         } finally {
             // when I reboot
-            Framework.getRuntime().getComponentManager().start();
-            //TODO Framework.getRuntime().resume();
+            mgr.resume();
         }
         Assert.assertTrue(works.awaitCompletion(10, TimeUnit.SECONDS));
         // works are completed

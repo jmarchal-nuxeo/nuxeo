@@ -20,19 +20,21 @@ import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.ObjectInstance;
 
+import org.nuxeo.runtime.api.Framework;
 import org.nuxeo.runtime.management.ObjectNameFactory;
+import org.nuxeo.runtime.model.ComponentManager;
 
-public class StandbyCommand  implements StandbyMXBean {
-/* TODO adapt to use ComponentManager start / stop
+public class StandbyCommand implements StandbyMXBean {
     @Override
     public void standby(int delay) throws InterruptedException {
-        if (Framework.getRuntime().isStandby()) {
+        ComponentManager mgr = Framework.getRuntime().getComponentManager();
+        if (mgr.isStandby()) {
             return;
         }
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(Framework.class.getClassLoader());
         try {
-            Framework.getRuntime().standby(Instant.now().plus(Duration.ofSeconds(delay)));
+            mgr.standby(delay);
         } finally {
             Thread.currentThread().setContextClassLoader(loader);
         }
@@ -40,13 +42,14 @@ public class StandbyCommand  implements StandbyMXBean {
 
     @Override
     public void resume() {
-        if (!Framework.getRuntime().isStandby()) {
+        ComponentManager mgr = Framework.getRuntime().getComponentManager();
+        if (!mgr.isStandby()) {
             return;
         }
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(Framework.class.getClassLoader());
         try {
-            Framework.getRuntime().resume();
+            mgr.resume();
         } finally {
             Thread.currentThread().setContextClassLoader(loader);
         }
@@ -54,9 +57,9 @@ public class StandbyCommand  implements StandbyMXBean {
 
     @Override
     public boolean isStandby() {
-        return Framework.getRuntime().isStandby();
+        return Framework.getRuntime().getComponentManager().isStandby();
     }
-*/
+
     protected final Registration registration = new Registration();
 
     protected class Registration {

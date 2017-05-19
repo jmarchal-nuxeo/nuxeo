@@ -27,11 +27,10 @@ import javax.management.MXBean;
 public interface StandbyMXBean {
 
     public static final String NAME = "org.nuxeo:name=org.nuxeo.ecm.core.management.standby,type=service";
-/* TODO adapt to use ComponentManager start / stop
     void standby(int delayInSeconds) throws InterruptedException;
 
     void resume();
 
     boolean isStandby();
-*/
+
 }

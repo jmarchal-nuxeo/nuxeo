@@ -48,29 +48,30 @@ public class TestComponentManager {
         public int afterStart = 0;
     }
 
-    static class MyListener implements ComponentManager.Listener {
+    static class MyListener extends ComponentManager.LifeCycleHandler {
 
         public EventsInfo info = new EventsInfo();
 
         @Override
-        public void beforeStop(ComponentManager mgr) {
+        public void beforeStop(ComponentManager mgr, boolean isStandby) {
             info.beforeStop++;
         }
 
         @Override
-        public void beforeStart(ComponentManager mgr) {
+        public void beforeStart(ComponentManager mgr, boolean isResume) {
             info.beforeStart++;
         }
 
         @Override
-        public void afterStop(ComponentManager mgr) {
+        public void afterStop(ComponentManager mgr, boolean isStandby) {
             info.afterStop++;
         }
 
         @Override
-        public void afterStart(ComponentManager mgr) {
+        public void afterStart(ComponentManager mgr, boolean isResume) {
             info.afterStart++;
         }
+
 
         public void assertCounters(int beforeStart, int afterStart, int beforeStop, int afterStop) {
             Assert.assertEquals(beforeStart, info.beforeStart);

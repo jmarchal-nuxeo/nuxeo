@@ -36,6 +36,7 @@ import org.nuxeo.runtime.RuntimeServiceException;
 import org.nuxeo.runtime.api.Framework;
 import org.nuxeo.runtime.deployment.preprocessor.DeploymentPreprocessor;
 import org.nuxeo.runtime.model.ComponentContext;
+import org.nuxeo.runtime.model.ComponentManager;
 import org.nuxeo.runtime.model.DefaultComponent;
 import org.nuxeo.runtime.services.event.Event;
 import org.nuxeo.runtime.services.event.EventService;
@@ -315,10 +316,13 @@ public class ReloadComponent extends DefaultComponent implements ReloadService {
 
     protected void triggerReload(String id) throws InterruptedException {
         log.info("about to reload for " + id);
+        ComponentManager mgr = Framework.getRuntime().getComponentManager();
         Framework.getLocalService(EventService.class).sendEvent(
                 new Event(RELOAD_TOPIC, BEFORE_RELOAD_EVENT_ID, this, null));
+        mgr.standby(30);
         try {
             Framework.getLocalService(EventService.class).sendEvent(new Event(RELOAD_TOPIC, id, this, null));
+            mgr.resume();
         } finally {
             Framework.getLocalService(EventService.class).sendEvent(
                     new Event(RELOAD_TOPIC, AFTER_RELOAD_EVENT_ID, this, null));

@@ -352,7 +352,8 @@ public class RegistrationInfoImpl implements RegistrationInfo {
     	return state == STARTED;
     }
 
-    public synchronized void stop() {
+    public synchronized void stop() throws InterruptedException {
+        //TODO use timeout
         if (state != STARTED) {
             return;
         }

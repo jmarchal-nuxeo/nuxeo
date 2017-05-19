@@ -81,6 +81,6 @@ public interface Component extends Extensible, TimestampedService {
      * @param context
      * @since TODO
      */
-    void stop(ComponentContext context);
+    void stop(ComponentContext context) throws InterruptedException;
 
 }

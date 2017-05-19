@@ -59,6 +59,7 @@ import org.nuxeo.runtime.metrics.MetricsService;
 import org.nuxeo.runtime.metrics.NuxeoMetricSet;
 import org.nuxeo.runtime.model.ComponentContext;
 import org.nuxeo.runtime.model.ComponentInstance;
+import org.nuxeo.runtime.model.ComponentManager;
 import org.nuxeo.runtime.model.DefaultComponent;
 import org.nuxeo.runtime.transaction.TransactionHelper;
 
@@ -131,6 +132,7 @@ public class WorkManagerImpl extends DefaultComponent implements WorkManager {
     }
 
     protected WorkCompletionSynchronizer completionSynchronizer;
+
 
     @Override
     public void registerContribution(Object contribution, String extensionPoint, ComponentInstance contributor) {
@@ -348,15 +350,10 @@ public class WorkManagerImpl extends DefaultComponent implements WorkManager {
     }
 
     @Override
-    public void stop(ComponentContext context) {
-    	try {
-    		if (!shutdown(10, TimeUnit.SECONDS)) {
-    			log.error("Some processors are still active");
-    		}
-    	} catch (InterruptedException cause) {
-    		Thread.currentThread().interrupt();
-    		log.error("Interrupted during works manager shutdown, continuing runtime shutdown", cause);
-    	}
+    public void stop(ComponentContext context) throws InterruptedException {
+        if (!shutdown(10, TimeUnit.SECONDS)) {
+            log.error("Some processors are still active");
+        }
     }
 
     protected volatile boolean started = false;
@@ -379,6 +376,26 @@ public class WorkManagerImpl extends DefaultComponent implements WorkManager {
             for (String id : workQueueConfig.getQueueIds()) {
                 initializeQueue(workQueueConfig.get(id));
             }
+
+            Framework.getRuntime().getComponentManager().addListener(new ComponentManager.LifeCycleHandler() {
+                @Override
+                public void beforeStop(ComponentManager mgr, boolean isStandby) {
+                    for (String id : workQueueConfig.getQueueIds()) {
+                        deactivateQueue(workQueueConfig.get(id));
+                    }
+                }
+                @Override
+                public void afterStart(ComponentManager mgr, boolean isResume) {
+                    for (String id : workQueueConfig.getQueueIds()) {
+                        activateQueue(workQueueConfig.get(id));
+                    }
+                }
+                @Override
+                public void afterStop(ComponentManager mgr, boolean isStandby) {
+                    Framework.getRuntime().getComponentManager().removeListener(this);
+                }
+            });
+
             for (String id : workQueueConfig.getQueueIds()) {
                 activateQueue(workQueueConfig.get(id));
             }
@@ -451,6 +468,7 @@ public class WorkManagerImpl extends DefaultComponent implements WorkManager {
             started = false;
         }
     }
+
 
     /**
      * A work instance and how to schedule it, for schedule-after-commit.

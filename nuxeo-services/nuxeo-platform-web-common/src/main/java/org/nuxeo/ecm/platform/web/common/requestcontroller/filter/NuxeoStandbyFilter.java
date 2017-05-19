@@ -45,11 +45,11 @@ public class NuxeoStandbyFilter implements Filter {
         controller = new Controller();
         Framework.getRuntime().getComponentManager().addListener(new ComponentManager.LifeCycleHandler() {
             @Override
-            public void beforeStop(ComponentManager mgr) {
+            public void beforeStop(ComponentManager mgr, boolean isStandby) {
                 controller.onStandby();
             }
             @Override
-            public void afterStart(ComponentManager mgr) {
+            public void afterStart(ComponentManager mgr, boolean isResume) {
                 controller.onResumed();
             }
         });

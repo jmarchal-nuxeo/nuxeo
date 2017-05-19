@@ -96,7 +96,7 @@ public class DefaultComponent implements Component, Adaptable {
     }
 
     @Override
-    public void stop(ComponentContext context) {
+    public void stop(ComponentContext context) throws InterruptedException {
     }
 
     /**

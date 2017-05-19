@@ -33,6 +33,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -453,6 +459,7 @@ public class ComponentManagerImpl implements ComponentManager {
      * @return the list of the activated components in the activation order
      */
     protected List<RegistrationInfoImpl> activateComponents() {
+        listeners.beforeActivation();
         // make sure we start with a clean pending registry
         pendingExtensions.clear();
 
@@ -463,6 +470,7 @@ public class ComponentManagerImpl implements ComponentManager {
             ri.activate();
             ris.add(ri);
         }
+        listeners.afterActivation();
         return ris;
     }
 
@@ -470,6 +478,7 @@ public class ComponentManagerImpl implements ComponentManager {
      * Deactivate all active components in the reverse resolve order
      */
     protected void deactivateComponents() {
+        listeners.beforeDeactivation();
         RegistrationInfoImpl[] reverseResolved = reg.resolved.values().toArray(new RegistrationInfoImpl[reg.resolved.size()]);
         for (int i=reverseResolved.length-1;i>=0;i--) {
             RegistrationInfoImpl ri = reverseResolved[i];
@@ -479,22 +488,36 @@ public class ComponentManagerImpl implements ComponentManager {
         }
         // make sure the pending extension map is empty (since we didn't unregistered extensions by calling ri.deactivate(false)
         pendingExtensions.clear();
+        listeners.afterDeactivation();
     }
 
     /**
      * Start all given components
      * @param ris
      */
-    protected void startComponents(List<RegistrationInfoImpl> ris) {
+    protected void startComponents(List<RegistrationInfoImpl> ris, boolean isResume) {
+        listeners.beforeStart(isResume);
         for (RegistrationInfoImpl ri : ris) {
             ri.start();
         }
+        this.started = ris;
+        listeners.afterStart(isResume);
     }
 
     /**
      * Stop all started components. Stopping components is done in reverse start order
      */
-    protected void stopComponents() {
+    protected void stopComponents(boolean isStandby) {
+        try {
+            doStopComppnents(isStandby);
+        } catch(InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while stopping components", e);
+        }
+    }
+
+    private void doStopComppnents(boolean isStandby) throws InterruptedException {
+        listeners.beforeStop(isStandby);
         List<RegistrationInfoImpl> list = this.started;
         for (int i=list.size()-1;i>=0;i--) {
             RegistrationInfoImpl ri = list.get(i);
@@ -502,6 +525,7 @@ public class ComponentManagerImpl implements ComponentManager {
                 ri.stop();
             }
         }
+        listeners.afterStop(isStandby);
     }
 
     @Override
@@ -513,19 +537,13 @@ public class ComponentManagerImpl implements ComponentManager {
     	double tm0 = System.currentTimeMillis();
     	infoLog.info("Starting Nuxeo Components");
 
-    	listeners.beforeStart();
-
     	List<RegistrationInfoImpl> ris = activateComponents();
 
         // TODO we sort using the old start order sorter (see OSGiRuntimeService.RIApplicationStartedComparator)
         Collections.sort(ris, new RIApplicationStartedComparator());
 
     	// then start activated components
-    	startComponents(ris);
-
-    	this.started = ris;
-
-    	listeners.afterStart();
+    	startComponents(ris, false);
 
     	double tm1 = System.currentTimeMillis();
     	infoLog.info("Nuxeo Components Started. Took: "+new DecimalFormat("#.00").format((tm1-tm0)/1000)+"s");
@@ -542,17 +560,13 @@ public class ComponentManagerImpl implements ComponentManager {
         double tm0 = System.currentTimeMillis();
     	infoLog.info("Stopping Nuxeo Components");
 
-    	listeners.beforeStop();
-
     	try {
-    	    stopComponents();
-    		// now deactivate all active components
-    	    deactivateComponents();
-    	} finally {
-    		this.started = null;
-    	}
-
-    	listeners.afterStop();
+    	    stopComponents(false);
+            // now deactivate all active components
+            deactivateComponents();
+        } finally {
+            this.started = null;
+        }
 
     	double tm1 = System.currentTimeMillis();
     	infoLog.info("Nuxeo Components Stopped. Took: "+new DecimalFormat("#.00").format((tm1-tm0)/1000)+"s");
@@ -561,20 +575,46 @@ public class ComponentManagerImpl implements ComponentManager {
     }
 
     @Override
+    public void stop(int timeoutInSeconds) {
+        try {
+            runWihtinTimeout(timeoutInSeconds, TimeUnit.SECONDS, "Timed out on stop, blocking", this::stop);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while stopping components", e);
+        }
+    }
+
+    @Override
     public synchronized void standby() {
         if (this.started != null) {
-            stopComponents();
-            this.standby = this.started;
-            this.started = null;
+            try {
+                stopComponents(true);
+            } finally {
+                this.standby = this.started;
+                this.started = null;
+            }
+        }
+    }
+
+    @Override
+    public void standby(int timeoutInSeconds) {
+        try {
+            runWihtinTimeout(timeoutInSeconds, TimeUnit.SECONDS, "Timed out on standby, blocking", this::standby);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while stopping components", e);
         }
     }
 
     @Override
     public synchronized void resume() {
         if (this.standby != null) {
-            startComponents(this.standby);
-            this.started = this.standby;
-            this.standby = null;
+            try {
+                startComponents(this.standby, true);
+            } finally {
+                this.started = this.standby;
+                this.standby = null;
+            }
         }
     }
 
@@ -732,30 +772,84 @@ public class ComponentManagerImpl implements ComponentManager {
             listeners.remove(listener);
         }
 
-        public void beforeStart() {
+        public void beforeActivation() {
             for (Object listener : listeners.getListeners()) {
-                ((ComponentManager.Listener)listener).beforeStart(ComponentManagerImpl.this);
+                ((ComponentManager.Listener)listener).beforeActivation(ComponentManagerImpl.this);
             }
         }
 
-        public void afterStart() {
+        public void afterActivation() {
             for (Object listener : listeners.getListeners()) {
-                ((ComponentManager.Listener)listener).afterStart(ComponentManagerImpl.this);
+                ((ComponentManager.Listener)listener).afterActivation(ComponentManagerImpl.this);
             }
         }
 
-        public void beforeStop() {
+        public void beforeDeactivation() {
             for (Object listener : listeners.getListeners()) {
-                ((ComponentManager.Listener)listener).beforeStop(ComponentManagerImpl.this);
+                ((ComponentManager.Listener)listener).beforeDeactivation(ComponentManagerImpl.this);
             }
         }
 
-        public void afterStop() {
+        public void afterDeactivation() {
             for (Object listener : listeners.getListeners()) {
-                ((ComponentManager.Listener)listener).afterStop(ComponentManagerImpl.this);
+                ((ComponentManager.Listener)listener).afterDeactivation(ComponentManagerImpl.this);
             }
         }
 
+        public void beforeStart(boolean isResume) {
+            for (Object listener : listeners.getListeners()) {
+                ((ComponentManager.Listener)listener).beforeStart(ComponentManagerImpl.this, isResume);
+            }
+        }
+
+        public void afterStart(boolean isResume) {
+            for (Object listener : listeners.getListeners()) {
+                ((ComponentManager.Listener)listener).afterStart(ComponentManagerImpl.this, isResume);
+            }
+        }
+
+        public void beforeStop(boolean isStandby) {
+            for (Object listener : listeners.getListeners()) {
+                ((ComponentManager.Listener)listener).beforeStop(ComponentManagerImpl.this, isStandby);
+            }
+        }
+
+        public void afterStop(boolean isStandby) {
+            for (Object listener : listeners.getListeners()) {
+                ((ComponentManager.Listener)listener).afterStop(ComponentManagerImpl.this, isStandby);
+            }
+        }
+
+    }
+
+
+    /**
+     * log a warning message if the timeout is reached while executing the given runnable
+     * @param timeout
+     * @param unit
+     * @param runnable
+     * @throws InterruptedException
+     */
+    static void runWihtinTimeout(long timeout, TimeUnit unit, String warn, Runnable runnable) throws InterruptedException {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Future<?> future = executor.submit(() -> {
+                runnable.run();
+            });
+            executor.shutdown();
+            try {
+                try {
+                    future.get(timeout, TimeUnit.MILLISECONDS);
+                } catch (TimeoutException cause) {
+                    log.warn(warn);
+                    future.get();
+                }
+            } catch (ExecutionException cause) {
+                throw new RuntimeException("Errors caught while stopping components, giving up", cause);
+            }
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
 }
