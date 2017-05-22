@@ -29,10 +29,8 @@ import org.nuxeo.ecm.core.cache.CacheFeature;
 import org.nuxeo.ecm.core.test.CoreFeature;
 import org.nuxeo.ecm.core.test.DefaultRepositoryInit;
 import org.nuxeo.ecm.core.test.annotations.RepositoryConfig;
-import org.nuxeo.runtime.ComponentEvent;
-import org.nuxeo.runtime.ComponentListener;
 import org.nuxeo.runtime.api.Framework;
-import org.nuxeo.runtime.model.ComponentInstance;
+import org.nuxeo.runtime.model.ComponentManager;
 import org.nuxeo.runtime.test.runner.Defaults;
 import org.nuxeo.runtime.test.runner.Features;
 import org.nuxeo.runtime.test.runner.FeaturesRunner;
@@ -172,7 +170,6 @@ public class RedisFeature extends SimpleFeature {
             return false;
         }
         component.registerRedisPoolDescriptor(getDescriptor(mode));
-        component.handleNewExecutor(component.getConfig().newExecutor());
         return true;
     }
 
@@ -192,26 +189,13 @@ public class RedisFeature extends SimpleFeature {
 
 
     protected void registerComponentListener() {
-        Framework.getRuntime().getComponentManager().addComponentListener(new ComponentListener() {
-            private RedisComponent asRedisComponent(ComponentEvent event) {
-                ComponentInstance ci = event.registrationInfo.getComponent();
-                if (ci == null) {
-                    return null;
-                }
-                Object obj = ci.getInstance();
-                if (obj instanceof RedisComponent) {
-                    return (RedisComponent)obj;
-                }
-                return null;
-            }
+        Framework.getRuntime().getComponentManager().addListener(new ComponentManager.LifeCycleHandler() {
             @Override
-            public void handleEvent(ComponentEvent event) {
-                if (event.id == ComponentEvent.COMPONENT_ACTIVATED) {
-                    RedisComponent comp = asRedisComponent(event);
-                    if (comp != null) {
-                        // install configuration
-                        installConfig(comp);
-                    }
+            public void afterActivation(ComponentManager mgr) {
+                // overwrite the redis config (before redis component is started)
+                RedisComponent comp = (RedisComponent)Framework.getRuntime().getComponent("org.nuxeo.ecm.core.redis");
+                if (comp != null) {
+                    installConfig(comp);
                 }
             }
         });
