@@ -168,6 +168,8 @@ public class ReloadComponent extends DefaultComponent implements ReloadService {
         Transaction tx = TransactionHelper.suspendTransaction();
         try {
             newBundle.start();
+            // reload components (and revert to snapshot)
+            Framework.getRuntime().getComponentManager().refresh(true);
         } finally {
             TransactionHelper.resumeTransaction(tx);
         }
@@ -222,6 +224,8 @@ public class ReloadComponent extends DefaultComponent implements ReloadService {
                     }
                 }
             }
+            //TODO this is reseting all deployed bundles!! may be doing a stop / start is better?
+            Framework.getRuntime().getComponentManager().reset();
         } finally {
             ctx.ungetService(ref);
         }
