@@ -79,6 +79,10 @@ public class AppendCommand implements Command {
 
         if (!dstFile.isFile()) {
             try {
+                File parent = dstFile.getParentFile();
+                if (!parent.isDirectory()) {
+                    parent.mkdirs();
+                }
                 dstFile.createNewFile();
             } catch (IOException e) {
                 throw new IOException(
@@ -109,8 +113,9 @@ public class AppendCommand implements Command {
     private void append(File srcFile, File dstFile, boolean appendNewLine) throws IOException {
         String srcExt = FileUtils.getFileExtension(srcFile.getName());
         String dstExt = FileUtils.getFileExtension(dstFile.getName());
-
-        if (StringUtils.equalsIgnoreCase(srcExt, dstExt) && "json".equalsIgnoreCase(srcExt)) {
+        boolean isDstEmpty = dstFile.length() == 0; // file empty or doesn't exists
+        if (!isDstEmpty && StringUtils.equalsIgnoreCase(srcExt, dstExt) && "json".equalsIgnoreCase(srcExt)) {
+            // merge the json
             ObjectMapper m = new ObjectMapper();
             ObjectNode destNode = m.readValue(dstFile, ObjectNode.class);
             ObjectNode srcNode = m.readValue(srcFile, ObjectNode.class);
