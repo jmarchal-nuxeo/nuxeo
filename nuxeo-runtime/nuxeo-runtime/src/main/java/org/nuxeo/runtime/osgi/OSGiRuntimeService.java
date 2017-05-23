@@ -33,7 +33,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -198,12 +197,9 @@ public class OSGiRuntimeService extends AbstractRuntimeService implements Framew
 
     @Override
     protected void doStop() {
+        // do not destroy context since component manager is already shutdown
         bundleContext.removeFrameworkListener(this);
-        try {
-            super.doStop();
-        } finally {
-            context.destroy();
-        }
+        super.doStop();
     }
 
     protected void loadComponents(Bundle bundle, RuntimeContext ctx) {

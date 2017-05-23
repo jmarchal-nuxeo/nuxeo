@@ -25,6 +25,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.codec.Charsets;
 import org.apache.commons.io.IOUtils;
@@ -34,6 +36,7 @@ import org.nuxeo.runtime.RuntimeService;
 import org.nuxeo.runtime.RuntimeServiceException;
 import org.nuxeo.runtime.api.Framework;
 import org.nuxeo.runtime.model.ComponentManager;
+import org.nuxeo.runtime.model.ComponentName;
 import org.nuxeo.runtime.model.RegistrationInfo;
 import org.nuxeo.runtime.model.RuntimeContext;
 import org.nuxeo.runtime.model.StreamRef;
@@ -66,6 +69,12 @@ public class DefaultRuntimeContext implements RuntimeContext {
 
 	protected RuntimeService runtime;
 
+	/**
+	 * The list of component names deployed by this context
+	 * @since TODO
+	 */
+	protected List<ComponentName> components;
+
 	protected final ComponentDescriptorReader reader;
 
 	public DefaultRuntimeContext() {
@@ -74,6 +83,7 @@ public class DefaultRuntimeContext implements RuntimeContext {
 
 	public DefaultRuntimeContext(RuntimeService runtime) {
 		this.runtime = runtime;
+		this.components = new ArrayList<>();
 		reader = new ComponentDescriptorReader();
 	}
 
@@ -84,6 +94,11 @@ public class DefaultRuntimeContext implements RuntimeContext {
 	@Override
 	public RuntimeService getRuntime() {
 		return runtime;
+	}
+
+	@Override
+	public ComponentName[] getComponents() {
+	    return components.toArray(new ComponentName[components.size()]);
 	}
 
 	@Override
@@ -127,29 +142,26 @@ public class DefaultRuntimeContext implements RuntimeContext {
 			}
 		}
 		runtime.getComponentManager().register(ri);
+		components.add(ri.name);
 		return ri;
 	}
 
 	@Override
-	@Deprecated
 	public void undeploy(URL url) {
 		runtime.getComponentManager().unregisterByLocation(url.toString());
 	}
 
 	@Override
-	@Deprecated
 	public void undeploy(StreamRef ref) {
 		runtime.getComponentManager().unregisterByLocation(ref.getId());
 	}
 
 	@Override
-	@Deprecated
 	public boolean isDeployed(URL url) {
 		return runtime.getComponentManager().hasComponentFromLocation(url.toString());
 	}
 
 	@Override
-	@Deprecated
 	public boolean isDeployed(StreamRef ref) {
 		return runtime.getComponentManager().hasComponentFromLocation(ref.getId());
 	}
@@ -168,7 +180,6 @@ public class DefaultRuntimeContext implements RuntimeContext {
 	}
 
 	@Override
-	@Deprecated
 	public void undeploy(String location) {
 		URL url = getLocalResource(location);
 		if (url == null) {
@@ -178,7 +189,6 @@ public class DefaultRuntimeContext implements RuntimeContext {
 	}
 
 	@Override
-	@Deprecated
 	public boolean isDeployed(String location) {
 		URL url = getLocalResource(location);
 		if (url != null) {
@@ -191,16 +201,10 @@ public class DefaultRuntimeContext implements RuntimeContext {
 
 	@Override
 	public void destroy() {
-		// do nothing - components are no more unregistered by the context
-		/*
-		Iterator<ComponentName> it = deployedFiles.values().iterator();
-		ComponentManager mgr = runtime.getComponentManager();
-		while (it.hasNext()) {
-			ComponentName name = it.next();
-			it.remove();
-			mgr.unregister(name);
-		}
-		*/
+	    ComponentManager mgr = runtime.getComponentManager();
+	    for (ComponentName cname : components) {
+	        mgr.unregister(cname);
+	    }
 	}
 
 	@Override

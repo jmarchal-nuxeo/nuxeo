@@ -93,7 +93,7 @@ public class ComponentManagerImpl implements ComponentManager {
     /**
      * A list of registrations that were deployed while the manager was started.
      */
-    protected volatile List<RegistrationInfoImpl> stash;
+    protected volatile Stash stash;
 
     protected volatile ComponentRegistry reg;
 
@@ -109,7 +109,7 @@ public class ComponentManagerImpl implements ComponentManager {
         listeners = new MyListeners();
         services = new ConcurrentHashMap<String, RegistrationInfoImpl>();
         blacklist = new HashSet<String>();
-        stash = new ArrayList<RegistrationInfoImpl>();
+        stash = new Stash();
     }
 
     public final ComponentRegistry getRegistry() {
@@ -264,6 +264,13 @@ public class ComponentManagerImpl implements ComponentManager {
 
     @Override
     public synchronized void unregister(ComponentName name) {
+        if (shouldStash()) { // stash the un-registration
+            stash.remove(name);
+            return;
+        }
+        if (hasSnapshot()) {
+            changed = true;
+        }
         try {
             log.info("Unregistering component: " + name);
             reg.removeComponent(name);
@@ -630,7 +637,7 @@ public class ComponentManagerImpl implements ComponentManager {
 
     @Override
     public boolean isRunning() {
-        return this.started == null && this.standby == null;
+        return this.started != null || this.standby != null;
     }
 
     @Override
@@ -676,23 +683,23 @@ public class ComponentManagerImpl implements ComponentManager {
     }
 
     @Override
-	public synchronized boolean refresh(boolean reset) {
-    	if (this.stash.isEmpty()) {
-    		return false;
-    	}
-    	boolean requireStart;
-    	if (reset) {
-    		requireStart = reset();
-    	} else {
-    		requireStart = stop();
-    	}
-    	List<RegistrationInfoImpl> currentStash = this.stash;
-    	this.stash = new ArrayList<RegistrationInfoImpl>();
-    	applyStash(currentStash);
-    	if (requireStart) {
-    		start();
-    	}
-    	return true;
+    public synchronized boolean refresh(boolean reset) {
+        if (this.stash.isEmpty()) {
+            return false;
+        }
+        boolean requireStart;
+        if (reset) {
+            requireStart = reset();
+        } else {
+            requireStart = stop();
+        }
+        Stash currentStash = this.stash;
+        this.stash = new Stash();
+        applyStash(currentStash);
+        if (requireStart) {
+            start();
+        }
+        return true;
     }
 
     protected synchronized void restoreSnapshot() {
@@ -712,35 +719,84 @@ public class ComponentManagerImpl implements ComponentManager {
      * @return
      */
     protected boolean shouldStash() {
-        // isFlushingStash is not really needed since we never apply the stash while the component manager is started
-        //return hasSnapshot() && !isFlushingStash;
         return this.started != null && !isFlushingStash;
     }
 
-    protected synchronized void applyStash(List<RegistrationInfoImpl> stash) {
+    protected synchronized void applyStash(Stash stash) {
         log.info("Applying stashed components");
-    	isFlushingStash = true;
-    	try {
-        	for (RegistrationInfoImpl ri : stash) {
-        		register(ri);
-        	}
-    	} finally {
-    		isFlushingStash = false;
-    		//changed = true;
-    	}
+        isFlushingStash = true;
+        try {
+            for (ComponentName name : stash.toRemove) {
+                unregister(name);
+            }
+            for (RegistrationInfoImpl ri : stash.toAdd) {
+                register(ri);
+            }
+        } finally {
+            isFlushingStash = false;
+        }
     }
 
-    /**
-     * Apply the stash without restarting components.
-     * This operation is unsafe since it may contribute to component that are already started.
-     * This may be used to speed up tests or for emulating the old hot reload mechanism
-     * TODO Should we expose this method in the API?
-     */
-    public void unstash() {
-        if (!this.stash.isEmpty()) {
-            List<RegistrationInfoImpl> currentStash = this.stash;
-            this.stash = new ArrayList<RegistrationInfoImpl>();
+    @Override
+    public synchronized void unstash() {
+        Stash currentStash = this.stash;
+        this.stash = new Stash();
+
+        if (!isRunning()) {
             applyStash(currentStash);
+        } else {
+            try {
+                applyStashWhenRunning(currentStash);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while unstashing components", e);
+            }
+        }
+    }
+
+    private void applyStashWhenRunning(Stash stash) throws InterruptedException {
+        List<RegistrationInfoImpl> toRemove = stash.getRegistrationsToRemove(reg);
+        if (isStarted()) {
+            for (RegistrationInfoImpl ri : toRemove) {
+                ri.stop();
+            }
+        }
+        for (RegistrationInfoImpl ri : toRemove) {
+            ri.deactivate();
+        }
+
+        applyStash(stash);
+
+        // activate the new components
+        for (RegistrationInfoImpl ri : stash.toAdd) {
+            if (ri.isResolved()) {
+                ri.activate();
+            }
+        }
+        if (isStandby()) {
+            this.standby.removeAll(toRemove);
+            // activate the new components
+            for (RegistrationInfoImpl ri : stash.toAdd) {
+                if (ri.isResolved()) {
+                    ri.activate();
+                    // add new components to standby list
+                    this.standby.add(ri);
+                }
+            }
+        } else if (isStarted()) {
+            this.started.removeAll(toRemove);
+            // start the new components and add them to the started list
+            for (RegistrationInfoImpl ri : stash.toAdd) {
+                if (ri.isResolved()) {
+                    ri.activate();
+                }
+            }
+            for (RegistrationInfoImpl ri : stash.toAdd) {
+                if (ri.isActivated()) {
+                    ri.start();
+                    this.started.add(ri);
+                }
+            }
         }
     }
 
@@ -852,4 +908,37 @@ public class ComponentManagerImpl implements ComponentManager {
         }
     }
 
+    static class Stash {
+        protected volatile List<RegistrationInfoImpl> toAdd;
+        protected volatile Set<ComponentName> toRemove;
+
+        public Stash() {
+            toAdd = new ArrayList<>();
+            toRemove = new HashSet<>();
+        }
+
+        public void add(RegistrationInfoImpl ri) {
+            this.toAdd.add(ri);
+        }
+
+        public void remove(ComponentName name) {
+            this.toRemove.add(name);
+        }
+
+        public boolean isEmpty() {
+            return toAdd.isEmpty() && toRemove.isEmpty();
+        }
+
+        public List<RegistrationInfoImpl> getRegistrationsToRemove(ComponentRegistry reg) {
+            ArrayList<RegistrationInfoImpl> ris = new ArrayList<>();
+            for (ComponentName name : toRemove) {
+                RegistrationInfoImpl ri = reg.getComponent(name);
+                if (ri != null) {
+                    ris.add(ri);
+                }
+            }
+            return ris;
+        }
+
+    }
 }

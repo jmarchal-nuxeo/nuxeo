@@ -84,21 +84,27 @@ public interface ComponentManager {
 
     /**
      * This method was added only to support unregistering by location which is used by some tests.
-     * If unregistering component API is removed then this method + the deployedFiles map from ComponentRegistry
-     * must be removed too.
+     * Removing by location should be managed at a higher level (it is useful only for tests) and this
+     * method should be removed
      *
      * @param sourceId the location from where the component was deployed
      * @return false if no component was registered from that location, true otherwise
      * @see DefaultRuntimeContext for more on this
      * @since TODO
      */
+    @Deprecated
     boolean unregisterByLocation(String sourceId);
 
     /**
      * Given a source location tests if a component was deployed from that location
+     * <br>
+     * This method was added to support undeploying by location needed by tests.
+     * Should be removed and a test specific helper implemented to support locations
+     *
      * @param sourceId
      * @return
      */
+    @Deprecated
     boolean hasComponentFromLocation(String sourceId);
 
     /**
@@ -352,6 +358,18 @@ public interface ComponentManager {
      * @return
      */
     boolean isStashEmpty();
+
+    /**
+     * Apply the stash if not empty.
+     * This is a low level operation and may not be safe to call when the component manager is running {@link #isRunning()}.
+     * <p>
+     * For compatibility reasons (to be able to emulate the old hot deploy mechanism or to speed up tests) this method will
+     * force a registry refresh in all 3 component manager states: stopped, standby, started.
+     * <p>
+     * Usually you should apply the stash by calling {@link #refresh()} which
+     * is similar to <code>stop(); [restoreSnapshot();] unstash(); start();</code>
+     */
+    void unstash();
 
     /**
      * Add a listener to be notified on manager actions like start / stop components.

@@ -39,7 +39,7 @@ import org.osgi.framework.Bundle;
  *
  * @author <a href="mailto:bs@nuxeo.com">Bogdan Stefanescu</a>
  */
-public interface RuntimeContext extends AutoCloseable {
+public interface RuntimeContext {
 
     /**
      * Gets the current runtime service.
@@ -52,6 +52,13 @@ public interface RuntimeContext extends AutoCloseable {
      * Gets the container bundle or null if we are not running in an OSGi environment.
      */
     Bundle getBundle();
+
+    /**
+     * Get the component names deployed by this context
+     * @since TODO
+     * @return the list of components. Return an empty array if no components where deployed.
+     */
+    ComponentName[] getComponents();
 
     /**
      * Loads the class given its name.
@@ -110,7 +117,6 @@ public interface RuntimeContext extends AutoCloseable {
      *
      * @param url the URL of the XML descriptor
      */
-    @Deprecated
     void undeploy(URL url) throws IOException;
 
     /**
@@ -118,7 +124,6 @@ public interface RuntimeContext extends AutoCloseable {
      *
      * @param ref
      */
-    @Deprecated
     void undeploy(StreamRef ref) throws IOException;
 
     /**
@@ -127,7 +132,6 @@ public interface RuntimeContext extends AutoCloseable {
      * @param url the URL to check
      * @return true it deployed, false otherwise
      */
-    @Deprecated
     boolean isDeployed(URL url);
 
     /**
@@ -136,7 +140,6 @@ public interface RuntimeContext extends AutoCloseable {
      * @param ref
      * @return
      */
-    @Deprecated
     boolean isDeployed(StreamRef ref);
 
     /**
@@ -161,7 +164,6 @@ public interface RuntimeContext extends AutoCloseable {
      *
      * @param location the location of the component to undeploy
      */
-    @Deprecated
     void undeploy(String location);
 
     /**
@@ -170,22 +172,11 @@ public interface RuntimeContext extends AutoCloseable {
      * @param location the component location to check
      * @return true if deployed, false otherwise
      */
-    @Deprecated
     boolean isDeployed(String location);
 
     /**
      * Destroys this context.
      */
     void destroy();
-
-    /**
-     * Destroys the context on close.
-     *
-     * @since 8.1
-     */
-    @Override
-    default void close() {
-        destroy();
-    }
 
 }

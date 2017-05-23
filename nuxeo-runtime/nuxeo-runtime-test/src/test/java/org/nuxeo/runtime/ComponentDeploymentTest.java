@@ -62,6 +62,7 @@ public class ComponentDeploymentTest extends NXRuntimeTestCase {
         assertEquals(co.getName(), new ComponentName("service:my.comp2"));
 
         mgr.unregister(new ComponentName("service:my.comp2"));
+        mgr.unstash(); // apply the stash
         co = runtime.getComponentInstance("service:my.comp2");
         assertNull(co);
         co = runtime.getComponentInstance("service:my.comp1");

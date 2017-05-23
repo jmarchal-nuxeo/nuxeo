@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -232,30 +231,6 @@ public class RuntimeDeployment {
             throw errors;
         }
 
-    }
-
-    /**
-     * @deprectaed we cannot undeploy components while they are started.
-     * This was replaced by a component manager restart (which restore the last snapshot)
-     */
-    @Deprecated
-    void undeploy() {
-        AssertionError errors = new AssertionError("deployment errors");
-
-        Iterator<RuntimeContext> it = contexts.descendingIterator();
-        while (it.hasNext()) {
-            RuntimeContext each = it.next();
-            it.remove();
-            try {
-                each.destroy();
-            } catch (RuntimeException error) {
-                errors.addSuppressed(error);
-            }
-        }
-
-        if (errors.getSuppressed().length > 0) {
-            throw errors;
-        }
     }
 
     public static RuntimeDeployment onTest(FeaturesRunner runner) {

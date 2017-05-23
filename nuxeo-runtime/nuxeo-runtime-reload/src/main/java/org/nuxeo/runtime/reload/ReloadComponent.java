@@ -36,6 +36,7 @@ import org.nuxeo.runtime.RuntimeServiceException;
 import org.nuxeo.runtime.api.Framework;
 import org.nuxeo.runtime.deployment.preprocessor.DeploymentPreprocessor;
 import org.nuxeo.runtime.model.ComponentContext;
+import org.nuxeo.runtime.model.ComponentManager;
 import org.nuxeo.runtime.model.DefaultComponent;
 import org.nuxeo.runtime.services.event.Event;
 import org.nuxeo.runtime.services.event.EventService;
@@ -77,16 +78,35 @@ public class ReloadComponent extends DefaultComponent implements ReloadService {
         bundle = null;
     }
 
+    protected void refreshComponents() {
+        String reloadStrategy = Framework.getProperty("org.nuxeo.runtime.reload_strategy", "restart");
+        log.info("Refresh components. Strategy: "+reloadStrategy);
+        // reload components / contributions
+        ComponentManager mgr = Framework.getRuntime().getComponentManager();
+        if ("unstash".equals(reloadStrategy)) {
+            // compat mode
+            mgr.unstash();
+        } else if ("standby".equals(reloadStrategy)) { // standby / resume
+            mgr.standby();
+            mgr.unstash();
+            mgr.resume();
+        } else { // restart mode
+            mgr.refresh(false);
+        }
+    }
+
     @Override
     public void reload() throws InterruptedException {
         if (log.isDebugEnabled()) {
             log.debug("Starting reload");
         }
+
         try {
             reloadProperties();
         } catch (IOException e) {
             throw new RuntimeServiceException(e);
         }
+
         triggerReloadWithNewTransaction(RELOAD_EVENT_ID);
     }
 
@@ -168,8 +188,7 @@ public class ReloadComponent extends DefaultComponent implements ReloadService {
         Transaction tx = TransactionHelper.suspendTransaction();
         try {
             newBundle.start();
-            // reload components (and revert to snapshot)
-            Framework.getRuntime().getComponentManager().refresh(true);
+            refreshComponents();
         } finally {
             TransactionHelper.resumeTransaction(tx);
         }
@@ -224,8 +243,6 @@ public class ReloadComponent extends DefaultComponent implements ReloadService {
                     }
                 }
             }
-            //TODO this is reseting all deployed bundles!! may be doing a stop / start is better?
-            Framework.getRuntime().getComponentManager().reset();
         } finally {
             ctx.ungetService(ref);
         }

@@ -490,9 +490,11 @@ public class RegistrationInfoImpl implements RegistrationInfo {
         // un-register services
         manager.unregisterServices(this);
 
-        if (state == ACTIVATED || state == START_FAILURE) {
-            deactivate();
-        }
+        // components are no more automatically activated when resolved. see ComponentManager#stop()
+        //if (state == ACTIVATED || state == START_FAILURE) {
+        //    deactivate();
+        //}
+
         state = REGISTERED;
         manager.sendEvent(new ComponentEvent(ComponentEvent.COMPONENT_UNRESOLVED, this));
     }
