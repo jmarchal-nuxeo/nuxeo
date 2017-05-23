@@ -33,7 +33,6 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.nuxeo.ecm.core.api.Blob;
@@ -48,9 +47,6 @@ import org.nuxeo.ecm.core.convert.extension.ChainedConverter;
 import org.nuxeo.ecm.core.convert.extension.Converter;
 import org.nuxeo.ecm.core.convert.extension.ConverterDescriptor;
 import org.nuxeo.ecm.core.convert.service.ConversionServiceImpl;
-import org.nuxeo.runtime.api.Framework;
-import org.nuxeo.runtime.model.RuntimeContext;
-import org.nuxeo.runtime.model.impl.DefaultRuntimeContext;
 import org.nuxeo.runtime.test.runner.Deploy;
 import org.nuxeo.runtime.test.runner.Features;
 import org.nuxeo.runtime.test.runner.FeaturesRunner;
@@ -62,18 +58,11 @@ import org.nuxeo.runtime.test.runner.LocalDeploy;
 @Deploy("org.nuxeo.ecm.core.mimetype")
 public class TestService {
 
-    RuntimeContext rc;
-
     @Inject
     protected ConversionService cs;
 
     @Inject
     protected HotDeployer deployer;
-
-    @Before
-    public void init() {
-        rc = new DefaultRuntimeContext(Framework.getRuntime());
-    }
 
 
     @Test
