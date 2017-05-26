@@ -622,7 +622,7 @@ public class DBSTransactionState {
     }
 
     /**
-     * Logic to get the conditions to use to match and update a change token.
+     * Logic to get the conditions to use to update a change token.
      * <p>
      * This may be called several times for a single DBS document update, because the low-level storage may need several
      * database updates for a single high-level update in some cases.
@@ -638,13 +638,6 @@ public class DBSTransactionState {
         public ChangeTokenUpdater(DBSDocumentState docState) {
             this.docState = docState;
             oldToken = (Long) docState.getOriginalState().get(KEY_CHANGE_TOKEN);
-        }
-
-        /**
-         * Gets the conditions to use to match a change token.
-         */
-        public Map<String, Serializable> getConditions() {
-            return Collections.singletonMap(KEY_CHANGE_TOKEN, oldToken);
         }
 
         /**

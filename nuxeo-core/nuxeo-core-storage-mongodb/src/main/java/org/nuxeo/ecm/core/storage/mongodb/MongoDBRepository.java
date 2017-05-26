@@ -371,14 +371,8 @@ public class MongoDBRepository extends DBSRepositoryBase {
         List<DBObject> updates = converter.diffToBson(diff);
         for (DBObject update : updates) {
             DBObject query = new BasicDBObject(idKey, id);
-            if (changeTokenUpdater == null) {
-                if (log.isTraceEnabled()) {
-                    log.trace("MongoDB: UPDATE " + id + ": " + update);
-                }
-            } else {
+            if (changeTokenUpdater != null) {
                 // assume bson is identical to dbs internals
-                // condition works even if value is null
-                Map<String, Serializable> conditions = changeTokenUpdater.getConditions();
                 Map<String, Serializable> tokenUpdates = changeTokenUpdater.getUpdates();
                 if (update.containsField(MONGODB_SET)) {
                     ((DBObject) update.get(MONGODB_SET)).putAll(tokenUpdates);
@@ -387,10 +381,9 @@ public class MongoDBRepository extends DBSRepositoryBase {
                     set.putAll(tokenUpdates);
                     update.put(MONGODB_SET, set);
                 }
-                if (log.isTraceEnabled()) {
-                    log.trace("MongoDB: UPDATE " + id + ": IF " + conditions + " THEN " + update);
-                }
-                query.putAll(conditions);
+            }
+            if (log.isTraceEnabled()) {
+                log.trace("MongoDB: UPDATE " + id + ": " + update);
             }
             WriteResult w = coll.update(query, update);
             if (w.getN() != 1) {

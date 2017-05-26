@@ -79,9 +79,6 @@ public interface RowMapper {
         // if -1 then a full update must be done
         public final int pos;
 
-        // conditions to add to get a conditional update, for change token
-        public Map<String, Serializable> conditions;
-
         /** Constructor for simple fragment update. */
         public RowUpdate(Row row, Collection<String> keys) {
             this.row = row;
@@ -99,10 +96,6 @@ public interface RowMapper {
             this.row = row;
             keys = null;
             this.pos = pos;
-        }
-
-        public void setConditions(Map<String, Serializable> conditions) {
-            this.conditions = conditions;
         }
 
         @Override
@@ -124,11 +117,7 @@ public interface RowMapper {
 
         @Override
         public String toString() {
-            String string = getClass().getSimpleName() + '(' + row + ", keys=" + keys + ')';
-            if (conditions != null && !conditions.isEmpty()) {
-                string += "(IF=" + conditions + ')';
-            }
-            return string;
+            return getClass().getSimpleName() + '(' + row + ", keys=" + keys + ')';
         }
     }
 

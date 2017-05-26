@@ -4579,29 +4579,8 @@ public class TestSQLRepositoryAPI {
         }
     }
 
-    // TODO this test fails randomly because of concurrent updates
     @Test
-    public void testOptimisticLockingWithRandomParallelWork() {
-        DocumentModel doc = session.createDocumentModel("/", "doc", "File");
-        maybeCreateChangeToken(doc);
-        doc.setPropertyValue("dc:title", "foo");
-        doc = session.createDocument(doc);
-        session.save();
-        nextTransaction();
-
-        doc.setPropertyValue("dc:title", "bar");
-        maybeUpdateChangeToken(doc);
-        session.saveDocument(doc);
-        // save may fail due to concurrent exception
-        // this happens if the async fulltext-indexing job changing the document
-        // runs in a different session than the main one
-        // FIXME fix change token management for this case
-        assumeTrue("FIXME", !isChangeTokenEnabled());
-        session.save();
-    }
-
-    @Test
-    public void testOptimisticLockingWithParallelChange() throws Exception {
+    public void testSystemParallelChangeIgnoreChangeToken() throws Exception {
         DocumentModel doc = session.createDocumentModel("/", "doc", "File");
         // create row in VCS dublincore table to avoid later concurrent update upon its creation
         doc.setPropertyValue("dc:title", "foo");
@@ -4642,19 +4621,8 @@ public class TestSQLRepositoryAPI {
         doc.setPropertyValue("dc:title", "bar");
         maybeUpdateChangeToken(doc);
         doc = session.saveDocument(doc);
-        try {
-            session.save();
-            if (isChangeTokenEnabled()) { // not failing for manual change tokens
-                fail("save should fail because of concurrent update in other transaction");
-            }
-        } catch (ConcurrentUpdateException e) {
-            if (!isChangeTokenEnabled()) {
-                // no exception expected for manual change token
-                throw e;
-            }
-            // ok
-            TransactionHelper.setTransactionRollbackOnly();
-        }
+        session.save();
+        // save succeeds because we allow overwrites of low-level changes
     }
 
 }

@@ -267,7 +267,6 @@ public class PersistenceContext {
         RowBatch batch = new RowBatch();
 
         // update change tokens
-        Map<Serializable, Map<String, Serializable>> rowUpdateConditions = new HashMap<>();
         if (session.changeTokenEnabled) {
             // find which docs are created
             for (Serializable id : createdIds) {
@@ -286,8 +285,7 @@ public class PersistenceContext {
                 Long base = (Long) hier.get(Model.MAIN_SYS_VERSION_KEY);
                 hier.put(Model.MAIN_SYS_VERSION_KEY, DeltaLong.valueOf(base, 1));
                 // update change token
-                Map<String, Serializable> conditions = updateChangeToken(hier);
-                rowUpdateConditions.put(id, conditions);
+                updateChangeToken(hier);
             }
         }
 
@@ -322,12 +320,6 @@ public class PersistenceContext {
             case MODIFIED:
                 RowUpdate rowu = fragment.getRowUpdate();
                 if (rowu != null) {
-                    if (Model.HIER_TABLE_NAME.equals(fragment.row.tableName)) {
-                        Map<String, Serializable> conditions = rowUpdateConditions.get(fragment.getId());
-                        if (conditions != null) {
-                            rowu.setConditions(conditions);
-                        }
-                    }
                     batch.updates.add(rowu);
                     fragmentsToClearDirty.add(fragment);
                 }
@@ -364,8 +356,8 @@ public class PersistenceContext {
         return batch;
     }
 
-    /** Updates a change token in the main fragment, and returns the condition to check. */
-    protected Map<String, Serializable> updateChangeToken(SimpleFragment hier) {
+    /** Updates a change token in the main fragment. */
+    protected void updateChangeToken(SimpleFragment hier) {
         Long oldToken = (Long) hier.get(Model.MAIN_CHANGE_TOKEN_KEY);
         Long newToken;
         if (oldToken == null) {
@@ -375,7 +367,6 @@ public class PersistenceContext {
             newToken = BaseDocument.updateChangeToken(oldToken);
         }
         hier.put(Model.MAIN_CHANGE_TOKEN_KEY, newToken);
-        return Collections.singletonMap(Model.MAIN_CHANGE_TOKEN_KEY, oldToken);
     }
 
     private boolean complexProp(SimpleFragment fragment) {

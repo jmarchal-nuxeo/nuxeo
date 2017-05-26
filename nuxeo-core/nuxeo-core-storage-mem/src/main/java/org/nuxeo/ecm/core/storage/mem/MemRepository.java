@@ -40,7 +40,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -174,11 +173,6 @@ public class MemRepository extends DBSRepositoryBase {
         synchronized (state) {
             // synchronization needed for atomic change token
             if (changeTokenUpdater != null) {
-                for (Entry<String, Serializable> en : changeTokenUpdater.getConditions().entrySet()) {
-                    if (!Objects.equals(state.get(en.getKey()), en.getValue())) {
-                        throw new ConcurrentUpdateException((String) state.get(KEY_ID));
-                    }
-                }
                 for (Entry<String, Serializable> en : changeTokenUpdater.getUpdates().entrySet()) {
                     applyDiff(state, en.getKey(), en.getValue());
                 }

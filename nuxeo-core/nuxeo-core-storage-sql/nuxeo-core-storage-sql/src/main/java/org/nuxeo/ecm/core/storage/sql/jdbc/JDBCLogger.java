@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.nuxeo.ecm.core.api.model.Delta;
-import org.nuxeo.ecm.core.storage.sql.Model;
 import org.nuxeo.ecm.core.storage.sql.Row;
 import org.nuxeo.ecm.core.storage.sql.jdbc.db.Column;
 
@@ -156,11 +155,10 @@ public class JDBCLogger {
     }
 
     public void logSQL(String sql, List<Column> columns, Row row) {
-        logSQL(sql, columns, row, Collections.emptyList(), Collections.emptyMap());
+        logSQL(sql, columns, row, Collections.emptyList());
     }
 
-    public void logSQL(String sql, List<Column> columns, Row row, List<Column> whereColumns,
-            Map<String, Serializable> conditions) {
+    public void logSQL(String sql, List<Column> columns, Row row, List<Column> whereColumns) {
         List<Serializable> values = new ArrayList<>();
         for (Column column : columns) {
             String key = column.getKey();
@@ -175,12 +173,7 @@ public class JDBCLogger {
         }
         for (Column column : whereColumns) {
             String key = column.getKey();
-            Serializable value;
-            if (column.getKey().equals(Model.MAIN_KEY)) {
-                value = row.get(key);
-            } else {
-                value = conditions.get(key);
-            }
+            Serializable value = row.get(key);
             values.add(value);
         }
         logSQL(sql, values);

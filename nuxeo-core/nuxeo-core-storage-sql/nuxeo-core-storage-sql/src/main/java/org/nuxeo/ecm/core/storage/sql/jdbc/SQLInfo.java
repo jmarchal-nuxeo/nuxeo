@@ -329,7 +329,7 @@ public class SQLInfo {
 
     /**
      * <pre>
-     * UPDATE tableName SET key1 = ?, key2 = ?, ... WHERE id = ? AND condition1 = ? AND condition2 IS NULL ...
+     * UPDATE tableName SET key1 = ?, key2 = ?, ... WHERE id = ?
      * </pre>
      */
     public SQLInfoSelect getUpdateById(String tableName, RowUpdate rowu) {
@@ -347,23 +347,9 @@ public class SQLInfo {
         }
         update.setUpdatedColumns(whatColumns, deltas);
 
-        List<Column> whereColumns = new ArrayList<>(2);
+        List<Column> whereColumns = new ArrayList<>(1);
         String where = getIdEqualsClause(tableName);
         whereColumns.add(table.getColumn(Model.MAIN_KEY));
-        if (rowu.conditions != null) {
-            for (Entry<String, Serializable> es : rowu.conditions.entrySet()) {
-                String key = es.getKey();
-                boolean isNull = es.getValue() == null;
-                Column column = table.getColumn(key);
-                String columnName = column.getQuotedName();
-                if (isNull) {
-                    where += " AND " + columnName + " IS NULL";
-                } else {
-                    where += " AND " + columnName + " = ?";
-                    whereColumns.add(column);
-                }
-            }
-        }
         update.setWhere(where);
         return new SQLInfoSelect(update.getStatement(), whatColumns, whereColumns, null);
     }

@@ -600,16 +600,14 @@ public class JDBCRowMapper extends JDBCConnection implements RowMapper {
             String sql = en.getKey();
             List<RowUpdate> rowUpdates = en.getValue();
             SQLInfoSelect update = sqlToInfo.get(sql);
-            boolean changeTokenEnabled = model.getRepositoryDescriptor().isChangeTokenEnabled();
-            boolean batched = supportsBatchUpdates && rowUpdates.size() > 1
-                    && (dialect.supportsBatchUpdateCount() || !changeTokenEnabled);
+            boolean batched = supportsBatchUpdates && rowUpdates.size() > 1;
             String loggedSql = batched ? update.sql + " -- BATCHED" : update.sql;
             try (PreparedStatement ps = connection.prepareStatement(update.sql)) {
                 int batch = 0;
                 for (Iterator<RowUpdate> rowIt = rowUpdates.iterator(); rowIt.hasNext();) {
                     RowUpdate rowu = rowIt.next();
                     if (logger.isLogEnabled()) {
-                        logger.logSQL(loggedSql, update.whatColumns, rowu.row, update.whereColumns, rowu.conditions);
+                        logger.logSQL(loggedSql, update.whatColumns, rowu.row, update.whereColumns);
                     }
                     int i = 1;
                     for (Column column : update.whatColumns) {
@@ -619,46 +617,21 @@ public class JDBCRowMapper extends JDBCConnection implements RowMapper {
                         }
                         column.setToPreparedStatement(ps, i++, value);
                     }
-                    boolean hasConditions = false;
                     for (Column column : update.whereColumns) {
-                        // id or condition
                         String key = column.getKey();
-                        Serializable value;
-                        if (key.equals(Model.MAIN_KEY)) {
-                            value = rowu.row.get(key);
-                        } else {
-                            hasConditions = true;
-                            value = rowu.conditions.get(key);
-                        }
+                        Serializable value = rowu.row.get(key);
                         column.setToPreparedStatement(ps, i++, value);
                     }
                     if (batched) {
                         ps.addBatch();
                         batch++;
                         if (batch % UPDATE_BATCH_SIZE == 0 || !rowIt.hasNext()) {
-                            int[] counts = ps.executeBatch();
+                            ps.executeBatch();
                             countExecute();
-                            if (changeTokenEnabled && hasConditions) {
-                                for (int j = 0; j < counts.length; j++) {
-                                    int count = counts[j];
-                                    if (count != Statement.SUCCESS_NO_INFO && count != 1) {
-                                        Serializable id = rowUpdates.get(j).row.id;
-                                        logger.log("  -> CONCURRENT UPDATE: " + id);
-                                        throw new ConcurrentUpdateException(id.toString());
-                                    }
-                                }
-                            }
                         }
                     } else {
-                        int count = ps.executeUpdate();
+                        ps.executeUpdate();
                         countExecute();
-                        if (changeTokenEnabled && hasConditions) {
-                            if (count != Statement.SUCCESS_NO_INFO && count != 1) {
-                                Serializable id = rowu.row.id;
-                                logger.log("  -> CONCURRENT UPDATE: " + id);
-                                throw new ConcurrentUpdateException(id.toString());
-                            }
-                        }
                     }
                 }
             } catch (SQLException e) {
