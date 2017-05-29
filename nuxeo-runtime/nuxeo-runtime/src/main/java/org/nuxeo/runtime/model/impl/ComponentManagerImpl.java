@@ -20,7 +20,8 @@
 
 package org.nuxeo.runtime.model.impl;
 
-import java.text.DecimalFormat;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -42,6 +43,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.nuxeo.common.Environment;
 import org.nuxeo.common.collections.ListenerList;
 import org.nuxeo.runtime.ComponentEvent;
 import org.nuxeo.runtime.ComponentListener;
@@ -52,6 +54,7 @@ import org.nuxeo.runtime.model.ComponentManager;
 import org.nuxeo.runtime.model.ComponentName;
 import org.nuxeo.runtime.model.Extension;
 import org.nuxeo.runtime.model.RegistrationInfo;
+import org.nuxeo.runtime.util.StopWatch;
 
 /**
  * @author Bogdan Stefanescu
@@ -466,6 +469,8 @@ public class ComponentManagerImpl implements ComponentManager {
      * @return the list of the activated components in the activation order
      */
     protected List<RegistrationInfoImpl> activateComponents() {
+        StopWatch watch = new StopWatch();
+        watch.start();
         listeners.beforeActivation();
         // make sure we start with a clean pending registry
         pendingExtensions.clear();
@@ -474,10 +479,17 @@ public class ComponentManagerImpl implements ComponentManager {
         // first activate resolved components
         for (RegistrationInfoImpl ri : reg.resolved.values()) {
             // TODO catch and handle errors
+            watch.start(ri.getName().getName());
             ri.activate();
             ris.add(ri);
+            watch.stop(ri.getName().getName());
         }
         listeners.afterActivation();
+        watch.stop();
+
+        infoLog.info("Components activated in "+watch.total.formatSeconds()+" sec.");
+        writeDevMetrics(watch, "activate");
+
         return ris;
     }
 
@@ -485,17 +497,24 @@ public class ComponentManagerImpl implements ComponentManager {
      * Deactivate all active components in the reverse resolve order
      */
     protected void deactivateComponents() {
+        StopWatch watch = new StopWatch();
+        watch.start();
         listeners.beforeDeactivation();
         RegistrationInfoImpl[] reverseResolved = reg.resolved.values().toArray(new RegistrationInfoImpl[reg.resolved.size()]);
         for (int i=reverseResolved.length-1;i>=0;i--) {
             RegistrationInfoImpl ri = reverseResolved[i];
             if (ri.isActivated()) {
+                watch.start(ri.getName().getName());
                 ri.deactivate(false);
+                watch.stop(ri.getName().getName());
             }
         }
         // make sure the pending extension map is empty (since we didn't unregistered extensions by calling ri.deactivate(false)
         pendingExtensions.clear();
         listeners.afterDeactivation();
+        watch.stop();
+
+        writeDevMetrics(watch, "deactivate");
     }
 
     /**
@@ -503,13 +522,21 @@ public class ComponentManagerImpl implements ComponentManager {
      * @param ris
      */
     protected void startComponents(List<RegistrationInfoImpl> ris, boolean isResume) {
+        StopWatch watch = new StopWatch();
+        watch.start();
         listeners.beforeStart(isResume);
         for (RegistrationInfoImpl ri : ris) {
+            watch.start(ri.getName().getName());
             ri.start();
+            watch.stop(ri.getName().getName());
         }
         this.started = ris;
         listeners.afterStart(isResume);
-    }
+        watch.stop();
+
+        infoLog.info("Components started in "+watch.total.formatSeconds()+" sec.");
+        writeDevMetrics(watch, "start");
+}
 
     /**
      * Stop all started components. Stopping components is done in reverse start order
@@ -524,15 +551,22 @@ public class ComponentManagerImpl implements ComponentManager {
     }
 
     private void doStopComppnents(boolean isStandby) throws InterruptedException {
+        StopWatch watch = new StopWatch();
+        watch.start();
         listeners.beforeStop(isStandby);
         List<RegistrationInfoImpl> list = this.started;
         for (int i=list.size()-1;i>=0;i--) {
             RegistrationInfoImpl ri = list.get(i);
             if (ri.isStarted()) {
+                watch.start(ri.getName().getName());
                 ri.stop();
+                watch.stop(ri.getName().getName());
             }
         }
         listeners.afterStop(isStandby);
+        watch.stop();
+
+        writeDevMetrics(watch, "stop");
     }
 
     @Override
@@ -541,7 +575,6 @@ public class ComponentManagerImpl implements ComponentManager {
     		return false;
     	}
 
-    	double tm0 = System.currentTimeMillis();
     	infoLog.info("Starting Nuxeo Components");
 
     	List<RegistrationInfoImpl> ris = activateComponents();
@@ -552,9 +585,6 @@ public class ComponentManagerImpl implements ComponentManager {
     	// then start activated components
     	startComponents(ris, false);
 
-    	double tm1 = System.currentTimeMillis();
-    	infoLog.info("Nuxeo Components Started. Took: "+new DecimalFormat("#.00").format((tm1-tm0)/1000)+"s");
-
     	return true;
     }
 
@@ -564,7 +594,6 @@ public class ComponentManagerImpl implements ComponentManager {
     		return false;
     	}
 
-        double tm0 = System.currentTimeMillis();
     	infoLog.info("Stopping Nuxeo Components");
 
     	try {
@@ -574,9 +603,6 @@ public class ComponentManagerImpl implements ComponentManager {
         } finally {
             this.started = null;
         }
-
-    	double tm1 = System.currentTimeMillis();
-    	infoLog.info("Nuxeo Components Stopped. Took: "+new DecimalFormat("#.00").format((tm1-tm0)/1000)+"s");
 
     	return true;
     }
@@ -815,6 +841,17 @@ public class ComponentManagerImpl implements ComponentManager {
         }
     }
 
+    protected void writeDevMetrics(StopWatch  watch, String type) {
+        if (!Framework.isDevModeSet()) {
+            return;
+        }
+        File file = new File(Environment.getDefault().getTemp(), type+"-metrics.txt");
+        try {
+            watch.rprint(file);
+        } catch (IOException e) {
+            log.error("Faild to write metrics file: "+file, e);
+        }
+    }
 
     protected class MyListeners {
 
@@ -941,4 +978,5 @@ public class ComponentManagerImpl implements ComponentManager {
         }
 
     }
+
 }
