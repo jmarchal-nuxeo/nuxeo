@@ -395,10 +395,6 @@ public class WorkManagerImpl extends DefaultComponent implements WorkManager {
                     Framework.getRuntime().getComponentManager().removeListener(this);
                 }
             });
-
-            for (String id : workQueueConfig.getQueueIds()) {
-                activateQueue(workQueueConfig.get(id));
-            }
         }
     }
 
