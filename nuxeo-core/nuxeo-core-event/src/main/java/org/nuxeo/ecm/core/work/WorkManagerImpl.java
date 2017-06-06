@@ -45,6 +45,7 @@ import javax.transaction.TransactionManager;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.nuxeo.common.logging.SequenceTracer;
+import org.nuxeo.ecm.core.api.NuxeoException;
 import org.nuxeo.ecm.core.event.EventServiceComponent;
 import org.nuxeo.ecm.core.work.WorkQueuing.Listener;
 import org.nuxeo.ecm.core.work.api.Work;
@@ -351,9 +352,8 @@ public class WorkManagerImpl extends DefaultComponent implements WorkManager {
 
     @Override
     public void stop(ComponentContext context) throws InterruptedException {
-        if (!shutdown(10, TimeUnit.SECONDS)) {
-            log.error("Some processors are still active");
-        }
+        // do nothing: we shutdown the thread pool at first before stopping any component
+        // see LifeCycleHandler.beforeStop
     }
 
     protected volatile boolean started = false;
@@ -382,6 +382,14 @@ public class WorkManagerImpl extends DefaultComponent implements WorkManager {
                 public void beforeStop(ComponentManager mgr, boolean isStandby) {
                     for (String id : workQueueConfig.getQueueIds()) {
                         deactivateQueue(workQueueConfig.get(id));
+                    }
+                    try {
+                        if (!shutdown(10, TimeUnit.SECONDS)) {
+                            log.error("Some processors are still active");
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new NuxeoException("Interrupted while stopping work manager thread pools", e);
                     }
                 }
                 @Override
