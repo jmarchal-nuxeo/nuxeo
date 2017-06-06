@@ -90,7 +90,7 @@ public interface ComponentManager {
      * @param sourceId the location from where the component was deployed
      * @return false if no component was registered from that location, true otherwise
      * @see DefaultRuntimeContext for more on this
-     * @since TODO
+     * @since 9.2
      */
     @Deprecated
     boolean unregisterByLocation(String sourceId);
@@ -162,7 +162,7 @@ public interface ComponentManager {
     /**
      * Gets the resolved component names in the order they were resolved
      *
-     * @since TODO
+     * @since 9.2
      */
     Collection<ComponentName> getResolvedRegistrations();
 
@@ -220,14 +220,14 @@ public interface ComponentManager {
     /**
      * Activate and start all resolved components. If components were already started do nothing.
      * @return false if components were already started, true otherwise
-     * @since TODO
+     * @since 9.2
      */
     boolean start();
 
     /**
      * Stop and deactivate all resolved components. If components were not yet started do nothing
      * @return false if components were not yet started, true otherwise
-     * @since TODO
+     * @since 9.2
      */
     boolean stop();
 
@@ -259,7 +259,7 @@ public interface ComponentManager {
     /**
      * Make a snapshot of the component registry.
      * When calling restart
-     * @since TODO
+     * @since 9.2
      */
     void snapshot();
 
@@ -273,7 +273,7 @@ public interface ComponentManager {
      * <p>
      * If the <code>reset</code> argument is true then the registry will be reverted to the last snapshot before starting the components.
      * @param reset whether or not to revert to the last snapshot
-     * @since TODO
+     * @since 9.2
      */
     void restart(boolean reset);
 
@@ -283,7 +283,7 @@ public interface ComponentManager {
      * You must call {@link #start()} to start again the components
      *
      * @return true if the components were stopped, false otherwise
-     * @since TODO
+     * @since 9.2
      */
     boolean reset();
 
@@ -300,7 +300,7 @@ public interface ComponentManager {
      * </ol>
      * @param reset whether or not to revert to the last snapshot
      * @return false if stash is empty and nothing was done, true otherwise
-     * @since TODO
+     * @since 9.2
      */
     boolean refresh(boolean reset);
 
@@ -316,7 +316,7 @@ public interface ComponentManager {
     /**
      * Tests whether the components were already started.
      * @return true if components are started, false
-     * @since TODO
+     * @since 9.2
      */
     boolean isStarted();
 
@@ -349,7 +349,7 @@ public interface ComponentManager {
     /**
      * Check if a snapshot was done
      * @return true if a snapshot already exists, false otherwise
-     * @since TODO
+     * @since 9.2
      */
     boolean hasSnapshot();
 

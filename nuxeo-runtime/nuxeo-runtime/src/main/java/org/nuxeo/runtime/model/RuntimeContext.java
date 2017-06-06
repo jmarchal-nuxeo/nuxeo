@@ -55,7 +55,7 @@ public interface RuntimeContext {
 
     /**
      * Get the component names deployed by this context
-     * @since TODO
+     * @since 9.2
      * @return the list of components. Return an empty array if no components where deployed.
      */
     ComponentName[] getComponents();

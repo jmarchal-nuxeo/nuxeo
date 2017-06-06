@@ -71,7 +71,7 @@ public interface RegistrationInfo extends Serializable {
 
     /**
      * Component was started
-     * @since TODO
+     * @since 9.2
      */
     int STARTED = 7;
 

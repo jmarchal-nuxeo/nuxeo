@@ -149,7 +149,7 @@ public class ComponentRegistry {
 
     /**
      * Get a copy of the resolved components map
-     * @since TODO
+     * @since 9.2
      * @return
      */
     public synchronized LinkedHashMap<ComponentName, RegistrationInfoImpl> getResolvedMap() {
@@ -158,7 +158,7 @@ public class ComponentRegistry {
 
     /**
      * Get a copy of the resolved components as a list
-     * @since TODO
+     * @since 9.2
      * @return
      */
     public synchronized List<RegistrationInfoImpl> getResolvedList() {
@@ -167,7 +167,7 @@ public class ComponentRegistry {
 
     /**
      * Get a copy of the resolved components as an array
-     * @since TODO
+     * @since 9.2
      * @return
      */
     public synchronized RegistrationInfoImpl[] getResolvedArray() {
@@ -176,7 +176,7 @@ public class ComponentRegistry {
 
     /**
      * Get a list of the resolved component names
-     * @since TODO
+     * @since 9.2
      * @return
      */
     public synchronized List<ComponentName> getResolvedNames() {

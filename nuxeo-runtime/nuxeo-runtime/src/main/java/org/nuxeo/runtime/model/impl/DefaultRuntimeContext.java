@@ -46,7 +46,7 @@ import org.nuxeo.runtime.osgi.OSGiRuntimeContext;
 import org.osgi.framework.Bundle;
 
 /**
- * New behavior @since TODO
+ * New behavior @since 9.2
  *
  * As the runtime lifecycle changed there make no sense to unregister components by their own.
  * The component registry is either reset to a clean state or shutdown.
@@ -71,7 +71,7 @@ public class DefaultRuntimeContext implements RuntimeContext {
 
 	/**
 	 * The list of component names deployed by this context
-	 * @since TODO
+	 * @since 9.2
 	 */
 	protected List<ComponentName> components;
 
